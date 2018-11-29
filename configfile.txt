@@ -1,0 +1,6 @@
+spaces  S 10
+spaces  M 5
+spaces  L 3
+cost S 1
+cost M 10
+cost L 100
