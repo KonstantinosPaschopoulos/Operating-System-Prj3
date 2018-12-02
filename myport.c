@@ -57,6 +57,36 @@ int main(int argc, char **argv){
     exit(-1);
   }
 
+  //Initializing the shared memory
+  shared_mem->small_type = 0;
+  shared_mem->medium_type = 0;
+  shared_mem->big_type = 0;
+  shared_mem->profit = 0;
+  shared_mem->avg_profit = 0;
+  shared_mem->small_waiting = 0;
+  shared_mem->medium_waiting = 0;
+  shared_mem->big_waiting = 0;
+  if (sem_init(&shared_mem->approaching, 1, 1) != 0)
+  {
+    perror("Could not initialize semaphore");
+    exit(3);
+  }
+  if (sem_init(&shared_mem->portmaster, 1, 0) != 0)
+  {
+    perror("Could not initialize semaphore");
+    exit(3);
+  }
+  if (sem_init(&shared_mem->mutex, 1, 1) != 0)
+  {
+    perror("Could not initialize semaphore");
+    exit(3);
+  }
+  if (sem_init(&shared_mem->port, 1, 0) != 0)
+  {
+    perror("Could not initialize semaphore");
+    exit(3);
+  }
+
   //Loop through the configfile to set the correct parameters
   while (fgets(line, 300, configfile))
   {
@@ -71,6 +101,7 @@ int main(int argc, char **argv){
     {
       if (strcmp(type, "S") == 0)
       {
+        shared_mem->small_type = 1;
         if (sem_init(&shared_mem->small_spaces, 1, value) != 0)
         {
           perror("Could not initialize semaphore");
@@ -79,6 +110,7 @@ int main(int argc, char **argv){
       }
       else if (strcmp(type, "M") == 0)
       {
+        shared_mem->medium_type = 1;
         if (sem_init(&shared_mem->medium_spaces, 1, value) != 0)
         {
           perror("Could not initialize semaphore");
@@ -87,6 +119,7 @@ int main(int argc, char **argv){
       }
       else
       {
+        shared_mem->big_type = 1;
         if (sem_init(&shared_mem->big_spaces, 1, value) != 0)
         {
           perror("Could not initialize semaphore");
@@ -117,7 +150,8 @@ int main(int argc, char **argv){
   //myport prints the id so that other processes can use it
   printf("Shared memory segment: %d\n", id);
 
-
+  //Wait for a signal from the user before exiting
+  getchar();
 
   //After everything is done remove the resources
   err = shmctl(id, IPC_RMID, 0);

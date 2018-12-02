@@ -10,7 +10,7 @@ myport:   myport.c
 
 vessel:   vessel.c
 	$(CC)  $(CFLAGS) vessel.c
-	$(CC)  vessel.o -o vessel
+	$(CC)  vessel.o -o vessel -lpthread
 
 clean:
 	rm -f   \

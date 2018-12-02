@@ -31,10 +31,14 @@ typedef struct public_ledger {
 typedef struct shm_management {
   sem_t approaching;
   sem_t portmaster;
+  sem_t port;
   sem_t mutex;
   sem_t small_spaces;
   sem_t medium_spaces;
   sem_t big_spaces;
+  int small_type;
+  int medium_type;
+  int big_type;
   int small_cost;
   int medium_cost;
   int big_cost;
@@ -44,6 +48,9 @@ typedef struct shm_management {
   int small_waiting;
   int medium_waiting;
   int big_waiting;
+  char waiting_type[1];
+  int waiting_upgrade;
+  int vessel_action;
 } shm_management;
 
 #endif
