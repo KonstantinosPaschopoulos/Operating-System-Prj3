@@ -16,8 +16,9 @@
 int main(int argc, char **argv){
   FILE *configfile = NULL;
   shm_management *shared_mem;
-  char line[300], action[20], type[1];
+  char line[300], action[20], type[1], str_id[300];
   int value, id, err;
+  pid_t port_master;
 
   //Parsing the input
   if (argc != 3)
@@ -66,6 +67,7 @@ int main(int argc, char **argv){
   shared_mem->small_waiting = 0;
   shared_mem->medium_waiting = 0;
   shared_mem->big_waiting = 0;
+  shared_mem->closing_time = 0;
   if (sem_init(&shared_mem->approaching, 1, 1) != 0)
   {
     perror("Could not initialize semaphore");
@@ -150,8 +152,28 @@ int main(int argc, char **argv){
   //myport prints the id so that other processes can use it
   printf("Shared memory segment: %d\n", id);
 
+  port_master = fork();
+  if (port_master < 0)
+  {
+    perror("Port-master Fork Failed");
+    exit(1);
+  }
+  if (port_master == 0)
+  {
+    sprintf(str_id, "%d", id);
+
+    //Calling the portmaster process to keep track of the port
+    execl("portmaster", "portmaster", "-s", str_id, NULL);
+
+    perror("Port-master failed to exec");
+    exit(-1);
+  }
+
   //Wait for a signal from the user before exiting
   getchar();
+
+  //Signal the other processes to stop working
+  shared_mem->closing_time = 1;
 
   //After everything is done remove the resources
   err = shmctl(id, IPC_RMID, 0);

@@ -21,7 +21,7 @@ int main(int argc, char **argv){
   {
     if (strcmp(argv[i], "-t") == 0)
     {
-      if ((strcmp(argv[i], "S") == 0) || (strcmp(argv[i], "M") == 0) || (strcmp(argv[i], "L") == 0))
+      if ((strcmp(argv[i + 1], "S") == 0) || (strcmp(argv[i + 1], "M") == 0) || (strcmp(argv[i + 1], "L") == 0))
       {
         strcpy(type, argv[i + 1]);
       }

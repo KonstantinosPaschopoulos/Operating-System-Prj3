@@ -51,6 +51,7 @@ typedef struct shm_management {
   char waiting_type[1];
   int waiting_upgrade;
   int vessel_action;
+  int closing_time;
 } shm_management;
 
 #endif
