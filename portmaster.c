@@ -15,7 +15,7 @@
 #include "mytypes.h"
 
 int main(int argc, char **argv){
-  int i, shmid;
+  int i, shmid, err;
   shm_management *shared_mem;
 
   //Parsing the input
@@ -42,7 +42,7 @@ int main(int argc, char **argv){
   }
 
   //The port-master is constantly working
-  while (shared_mem->closing_time == 0)
+  while (1)
   {
     printf("HERE\n");
     //The port-master waits until a vessel talks to him
@@ -149,6 +149,10 @@ int main(int argc, char **argv){
       //Answering the vessel
       sem_post(&shared_mem->answer);
     }
+    else if (shared_mem->vessel_action == -1)
+    {
+      break;
+    }
 
     printf("PORTMASTER ONE MORE\n");
 
@@ -156,7 +160,15 @@ int main(int argc, char **argv){
     sem_post(&shared_mem->approaching);
   }
 
+  //Detaching the shared memory before exiting
+  err = shmdt((void *)shared_mem);
+  if (err == -1)
+  {
+    perror("Could not detach shared memory");
+    exit(-1);
+  }
 
+  printf("Port-master has finished\n");
 
   return 0;
 }

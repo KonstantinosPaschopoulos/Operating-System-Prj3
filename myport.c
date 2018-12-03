@@ -190,8 +190,8 @@ int main(int argc, char **argv){
     {
       //Creating new vessels
       sprintf(vessel_name, "%d", getpid());
-      sprintf(parkingtime_str, "%d", (rand() % 3 + 1));
-      sprintf(mantime_str, "%d", (rand() % 6 + 1));
+      sprintf(parkingtime_str, "%d", (rand() % 1 + 1));
+      sprintf(mantime_str, "%d", (rand() % 2 + 1));
       temp = rand() % 3;
       if (temp == 1)
       {
@@ -227,10 +227,16 @@ int main(int argc, char **argv){
   }
 
   //Wait for a signal from the user before exiting
+  printf("Press enter to start closing down the port facilites\n");
   getchar();
 
-  //Signal the other processes to stop working
-  shared_mem->closing_time = 1;
+  //Signal the other processes to stop executing
+  shared_mem->vessel_action = -1;
+  sem_post(&shared_mem->portmaster);
+  sleep(4);
+
+  printf("Press enter again to exit the program\n");
+  getchar();
 
   //After everything is done remove the resources
   err = shmctl(id, IPC_RMID, 0);

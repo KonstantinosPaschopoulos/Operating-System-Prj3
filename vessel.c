@@ -133,5 +133,7 @@ int main(int argc, char **argv){
     exit(-1);
   }
 
+  printf("Vessel %d has left the port\n", getpid());
+
   return 0;
 }
