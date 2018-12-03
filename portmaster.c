@@ -42,11 +42,117 @@ int main(int argc, char **argv){
   }
 
   //The port-master is constantly working
-  while (1)
+  while (shared_mem->closing_time == 0)
   {
+    printf("HERE\n");
+    //The port-master waits until a vessel talks to him
     sem_wait(&shared_mem->portmaster);
 
+    if (shared_mem->vessel_action == 0)
+    {
+      //The vessel asks where to park
 
+      if (strcmp(shared_mem->waiting_type, "S") == 0)
+      {
+        //Checking if the port can support small vessels
+        if (shared_mem->waiting_upgrade != 1)
+        {
+          if (shared_mem->small_type != 1)
+          {
+            shared_mem->portmaster_action = 0;
+          }
+        }
+        else
+        {
+          if ((shared_mem->medium_type != 1) && (shared_mem->big_type != 1))
+          {
+            shared_mem->portmaster_action = 0;
+          }
+        }
+
+        //Checking if there are availiable spots
+        if (shared_mem->small_spaces == 0)
+        {
+          if (shared_mem->waiting_upgrade != 1)
+          {
+            shared_mem->portmaster_action = 1;
+          }
+          else
+          {
+            if ((shared_mem->medium_spaces == 0) && (shared_mem->big_spaces == 0))
+            {
+              shared_mem->portmaster_action = 1;
+            }
+          }
+        }
+
+        //Finding a parking spot for the vessel
+        shared_mem->portmaster_action = 2;
+      }
+
+      if (strcmp(shared_mem->waiting_type, "M") == 0)
+      {
+        //Checking if the port can support medium vessels
+        if (shared_mem->waiting_upgrade != 1)
+        {
+          if (shared_mem->medium_type != 1)
+          {
+            shared_mem->portmaster_action = 0;
+          }
+        }
+        else
+        {
+          if (shared_mem->big_type != 1)
+          {
+            shared_mem->portmaster_action = 0;
+          }
+        }
+
+        //Checking if there are availiable spots
+        if (shared_mem->medium_spaces == 0)
+        {
+          if (shared_mem->waiting_upgrade != 1)
+          {
+            shared_mem->portmaster_action = 1;
+          }
+          else
+          {
+            if (shared_mem->big_spaces == 0)
+            {
+              shared_mem->portmaster_action = 1;
+            }
+          }
+        }
+
+        //Finding a parking spot for the vessel
+        shared_mem->portmaster_action = 2;
+      }
+
+      if (strcmp(shared_mem->waiting_type, "L") == 0)
+      {
+        //Checking if the port can support large vessels
+        if (shared_mem->big_type != 1)
+        {
+          shared_mem->portmaster_action = 0;
+        }
+
+        //Checking if there are availiable spots
+        if (shared_mem->big_spaces == 0)
+        {
+          shared_mem->portmaster_action = 1;
+        }
+
+        //Finding a parking spot for the vessel
+        shared_mem->portmaster_action = 2;
+      }
+
+      //Answering the vessel
+      sem_post(&shared_mem->answer);
+    }
+
+    printf("PORTMASTER ONE MORE\n");
+
+    //Ready to accept the next vessel
     sem_post(&shared_mem->approaching);
   }
 

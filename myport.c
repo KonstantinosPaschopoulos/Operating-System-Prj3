@@ -8,17 +8,19 @@
 #include <string.h>
 #include <semaphore.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <unistd.h>
+#include <time.h>
 #include "mytypes.h"
 
 int main(int argc, char **argv){
   FILE *configfile = NULL;
   shm_management *shared_mem;
-  char line[300], action[20], type[1], str_id[300];
-  int value, id, err;
-  pid_t port_master;
+  char line[300], action[20], type[1], str_id[300], vessel_name[300], parkingtime_str[300], mantime_str[300];
+  int value, id, err, i, status, temp;
+  pid_t port_master, vessel;
 
   //Parsing the input
   if (argc != 3)
@@ -83,7 +85,12 @@ int main(int argc, char **argv){
     perror("Could not initialize semaphore");
     exit(3);
   }
-  if (sem_init(&shared_mem->port, 1, 0) != 0)
+  if (sem_init(&shared_mem->port, 1, 1) != 0)
+  {
+    perror("Could not initialize semaphore");
+    exit(3);
+  }
+  if (sem_init(&shared_mem->answer, 1, 0) != 0)
   {
     perror("Could not initialize semaphore");
     exit(3);
@@ -104,29 +111,32 @@ int main(int argc, char **argv){
       if (strcmp(type, "S") == 0)
       {
         shared_mem->small_type = 1;
-        if (sem_init(&shared_mem->small_spaces, 1, value) != 0)
-        {
-          perror("Could not initialize semaphore");
-          exit(3);
-        }
+        shared_mem->small_spaces = value;
+        // if (sem_init(&shared_mem->small_spaces, 1, value) != 0)
+        // {
+        //   perror("Could not initialize semaphore");
+        //   exit(3);
+        // }
       }
       else if (strcmp(type, "M") == 0)
       {
         shared_mem->medium_type = 1;
-        if (sem_init(&shared_mem->medium_spaces, 1, value) != 0)
-        {
-          perror("Could not initialize semaphore");
-          exit(3);
-        }
+        shared_mem->medium_spaces = value;
+        // if (sem_init(&shared_mem->medium_spaces, 1, value) != 0)
+        // {
+        //   perror("Could not initialize semaphore");
+        //   exit(3);
+        // }
       }
       else
       {
         shared_mem->big_type = 1;
-        if (sem_init(&shared_mem->big_spaces, 1, value) != 0)
-        {
-          perror("Could not initialize semaphore");
-          exit(3);
-        }
+        shared_mem->big_spaces = value;
+        // if (sem_init(&shared_mem->big_spaces, 1, value) != 0)
+        // {
+        //   perror("Could not initialize semaphore");
+        //   exit(3);
+        // }
       }
     }
     else if (strcmp(action, "cost") == 0)
@@ -151,22 +161,69 @@ int main(int argc, char **argv){
   //After the shared memory is set up
   //myport prints the id so that other processes can use it
   printf("Shared memory segment: %d\n", id);
+  sprintf(str_id, "%d", id);
 
   port_master = fork();
   if (port_master < 0)
   {
-    perror("Port-master Fork Failed");
-    exit(1);
+    perror("Port-master fork failed");
+    exit(-1);
   }
   if (port_master == 0)
   {
-    sprintf(str_id, "%d", id);
-
     //Calling the portmaster process to keep track of the port
     execl("portmaster", "portmaster", "-s", str_id, NULL);
 
     perror("Port-master failed to exec");
     exit(-1);
+  }
+
+  for (i = 0; i < 10; i++)
+  {
+    vessel = fork();
+    if (vessel < 0)
+    {
+      perror("Vessel Fork failed");
+      exit(-1);
+    }
+    if (vessel == 0)
+    {
+      //Creating new vessels
+      sprintf(vessel_name, "%d", getpid());
+      sprintf(parkingtime_str, "%d", (rand() % 3 + 1));
+      sprintf(mantime_str, "%d", (rand() % 6 + 1));
+      temp = rand() % 3;
+      if (temp == 1)
+      {
+        strcpy(type, "S");
+      }
+      else if (temp == 2)
+      {
+        strcpy(type, "M");
+      }
+      else
+      {
+        strcpy(type, "L");
+      }
+      printf("%s\n", type);
+
+      //With upgrade or not
+      if (rand() % 2)
+      {
+        execl("vessel", "vessel", "-s", str_id, "-u", "-m", mantime_str, "-p", parkingtime_str, "-t", type, NULL);
+      }
+      else
+      {
+        execl("vessel", "vessel", "-s", str_id, "-m", mantime_str, "-p", parkingtime_str, "-t", type, NULL);
+      }
+
+      perror("Failed to exec new vessel");
+      exit(-1);
+    }
+  }
+  for (i = 0; i < 10; i++)
+  {
+    wait(&status);
   }
 
   //Wait for a signal from the user before exiting
@@ -182,23 +239,6 @@ int main(int argc, char **argv){
     perror("Could not remove shared memory segment");
     exit(2);
   }
-
-
-  /*
-
-for(i = 0; i < atoi(argv[1]); i++) {
-    pid = fork();
-    if(pid < 0) {
-        printf("Error");
-        exit(1);
-    } else if (pid == 0) {
-        printf("Child (%d): %d\n", i + 1, getpid());
-        exit(0);
-    } else  {
-        wait(NULL);
-    }
-}
-*/
 
   return 0;
 }

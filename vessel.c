@@ -70,39 +70,55 @@ int main(int argc, char **argv){
   //The vessel stays in the open sea and is waiting in the FIFO queue
   sem_wait(&shared_mem->approaching);
 
-  //The vessel can now wake up the port-master and ask him where to park
-  sem_wait(&shared_mem->mutex);
-  strcpy(shared_mem->waiting_type, type);
-  shared_mem->waiting_upgrade = upgrade;
-  shared_mem->vessel_action = 0;
-  sem_post(&shared_mem->mutex);
+  while (1)
+  {
+    //The vessel can now wake up the port-master and ask him where to park
+    //sem_wait(&shared_mem->mutex);
+    strcpy(shared_mem->waiting_type, type);
+    shared_mem->waiting_upgrade = upgrade;
+    shared_mem->vessel_action = 0;
+    //sem_post(&shared_mem->mutex);
 
-  sem_post(&shared_mem->portmaster);
+    sem_post(&shared_mem->portmaster);
 
-  //The post-master replied and the vessel can now move inside the port
+    //The post-master replied and the vessel can now move inside the port
+    sem_wait(&shared_mem->answer);
+
+    if (shared_mem->portmaster_action == 0)
+    {
+      //This vessel can't park in this port so it has to leave
+      return 0;
+    }
+    else if (shared_mem->portmaster_action == 1)
+    {
+      //There are no availiable parking spots at this moment
+      sem_wait(&shared_mem->approaching);
+    }
+    else if (shared_mem->portmaster_action == 2)
+    {
+      break;
+    }
+  }
+
   sem_wait(&shared_mem->port);
-
-
-
-
   sleep(mantime);
-
   //The vessel has parked and now noone is moving inside the port
   sem_post(&shared_mem->port);
 
   for (i = 0; i < parkperiod; i++)
   {
-    sleep(0.5);
+    sleep(1);
 
     //Asking for the current bill
   }
 
-  //Asking the port-master to leave
-  sem_wait(&shared_mem->mutex);
-  shared_mem->vessel_action = 1;
-  sem_post(&shared_mem->mutex);
 
-  sem_post(&shared_mem->portmaster);
+  //Asking the port-master to leave
+  //sem_wait(&shared_mem->mutex);
+  //shared_mem->vessel_action = 1;
+  //sem_post(&shared_mem->mutex);
+
+  //sem_post(&shared_mem->portmaster);
 
   //The vessel can now leave
   sem_wait(&shared_mem->port);

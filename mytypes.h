@@ -33,9 +33,10 @@ typedef struct shm_management {
   sem_t portmaster;
   sem_t port;
   sem_t mutex;
-  sem_t small_spaces;
-  sem_t medium_spaces;
-  sem_t big_spaces;
+  sem_t answer;
+  int small_spaces;
+  int medium_spaces;
+  int big_spaces;
   int small_type;
   int medium_type;
   int big_type;
@@ -51,6 +52,7 @@ typedef struct shm_management {
   char waiting_type[1];
   int waiting_upgrade;
   int vessel_action;
+  int portmaster_action;
   int closing_time;
 } shm_management;
 
