@@ -67,22 +67,28 @@ int main(int argc, char **argv){
     exit(-1);
   }
 
-  //The vessel stays in the open sea and is waiting in the FIFO queue
+  printf("Vessel %d is approaching the port\n", getpid());
+
+  //The vessel stays in the open sea and waits in the FIFO queue
   sem_wait(&shared_mem->approaching);
 
   while (1)
   {
+    printf("Vessel %d can now talk with the port-master\n", getpid());
+
     //The vessel can now wake up the port-master and ask him where to park
-    //sem_wait(&shared_mem->mutex);
     strcpy(shared_mem->waiting_type, type);
     shared_mem->waiting_upgrade = upgrade;
     shared_mem->vessel_action = 0;
-    //sem_post(&shared_mem->mutex);
 
     sem_post(&shared_mem->portmaster);
 
-    //The post-master replied and the vessel can now move inside the port
+    printf("Vessel %d is waiting for an answer from the port-master\n", getpid());
+
+    //The port-master replied and the vessel can now move inside the port
     sem_wait(&shared_mem->answer);
+
+    printf("Port-master answered vessel %d to %d\n", getpid(), shared_mem->portmaster_action);
 
     if (shared_mem->portmaster_action == 0)
     {
@@ -96,20 +102,28 @@ int main(int argc, char **argv){
     }
     else if (shared_mem->portmaster_action == 2)
     {
+      //The port-master found a place for the vessel to park
       break;
     }
   }
 
-  sem_wait(&shared_mem->port);
+  //Free the port-master
+  sem_post(&shared_mem->portmaster);
+
+  printf("Vessel %d moves to the assigned parking spot\n", getpid());
+
   sleep(mantime);
-  //The vessel has parked and now noone is moving inside the port
+
+  //The vessel has parked and now no one is moving inside the port
   sem_post(&shared_mem->port);
 
+  printf("Vessel %d will stay parked for %d seconds\n", getpid(), parkperiod);
+
+  //The vessel stays parked in the port and at a random point asks for the current bill
   for (i = 0; i < parkperiod; i++)
   {
     sleep(1);
 
-    //Asking for the current bill
   }
 
 

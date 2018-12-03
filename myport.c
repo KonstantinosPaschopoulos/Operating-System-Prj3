@@ -178,7 +178,7 @@ int main(int argc, char **argv){
     exit(-1);
   }
 
-  for (i = 0; i < 10; i++)
+  for (i = 0; i < 5; i++)
   {
     vessel = fork();
     if (vessel < 0)
@@ -221,7 +221,7 @@ int main(int argc, char **argv){
       exit(-1);
     }
   }
-  for (i = 0; i < 10; i++)
+  for (i = 0; i < 5; i++)
   {
     wait(&status);
   }
@@ -233,7 +233,7 @@ int main(int argc, char **argv){
   //Signal the other processes to stop executing
   shared_mem->vessel_action = -1;
   sem_post(&shared_mem->portmaster);
-  sleep(4);
+  sleep(3);
 
   printf("Press enter again to exit the program\n");
   getchar();

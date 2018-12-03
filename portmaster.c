@@ -41,12 +41,15 @@ int main(int argc, char **argv){
     exit(-1);
   }
 
+  printf("The port-master is ready\n");
+
   //The port-master is constantly working
   while (1)
   {
-    printf("HERE\n");
     //The port-master waits until a vessel talks to him
     sem_wait(&shared_mem->portmaster);
+
+    printf("The port-master is deciding what to do\n");
 
     if (shared_mem->vessel_action == 0)
     {
@@ -147,14 +150,24 @@ int main(int argc, char **argv){
       }
 
       //Answering the vessel
+      if (shared_mem->portmaster_action == 2)
+      {
+        //The vessel can park somewhere but the port-master has to make
+        //sure no one is moving in the port before answering
+        sem_wait(&shared_mem->port);
+      }
       sem_post(&shared_mem->answer);
+
+      //The port-master will be unavailable until the vessel
+      //has received the answer
+      sem_wait(&shared_mem->portmaster);
     }
     else if (shared_mem->vessel_action == -1)
     {
       break;
     }
 
-    printf("PORTMASTER ONE MORE\n");
+    printf("The port-master is ready to assist the next vessel\n");
 
     //Ready to accept the next vessel
     sem_post(&shared_mem->approaching);
