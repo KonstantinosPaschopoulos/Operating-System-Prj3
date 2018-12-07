@@ -207,7 +207,7 @@ int main(int argc, char **argv){
     exit(-1);
   }
 
-  for (i = 0; i < 5; i++)
+  for (i = 0; i < 3; i++)
   {
     vessel = fork();
     if (vessel < 0)
@@ -250,7 +250,7 @@ int main(int argc, char **argv){
       exit(-1);
     }
   }
-  for (i = 0; i < 5; i++)
+  for (i = 0; i < 3; i++)
   {
     wait(&status);
   }

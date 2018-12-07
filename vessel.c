@@ -99,6 +99,7 @@ int main(int argc, char **argv){
     else if (shared_mem->portmaster_action == 1)
     {
       //There are no availiable parking spots at this moment
+      sem_post(&shared_mem->portmaster);
       sem_wait(&shared_mem->approaching);
     }
     else if (shared_mem->portmaster_action == 2)

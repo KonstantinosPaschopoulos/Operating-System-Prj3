@@ -15,9 +15,9 @@
 #include "mytypes.h"
 
 int main(int argc, char **argv){
-  int i, shmid, err;
-  shm_management *shared_mem;
+  int i, shmid, err, flag;
   void *shm;
+  shm_management *shared_mem;
 
   //Parsing the input
   for (i = 1; i < argc; i++)
@@ -25,6 +25,10 @@ int main(int argc, char **argv){
     if (strcmp(argv[i], "-s") == 0)
     {
       shmid = atoi(argv[i + 1]);
+      i++;
+    }
+    else if (strcmp(argv[i], "-c") == 0)
+    {
       i++;
     }
     else
@@ -49,8 +53,6 @@ int main(int argc, char **argv){
     printf("%d %s\n", shared_mem->parking_spaces[i].parking_space_id, shared_mem->parking_spaces[i].type);
   }
 
-  printf("The port-master is ready\n");
-
   //The port-master is constantly working
   while (1)
   {
@@ -62,99 +64,118 @@ int main(int argc, char **argv){
     if (shared_mem->vessel_action == 0)
     {
       //The vessel asks where to park
-
+      flag = 0;
       if (strcmp(shared_mem->waiting_type, "S") == 0)
       {
         //Checking if the port can support small vessels
-        if (shared_mem->waiting_upgrade != 1)
+        if (shared_mem->small_type == 0)
         {
-          if (shared_mem->small_type != 1)
+          if (shared_mem->waiting_upgrade == 1)
           {
-            shared_mem->portmaster_action = 0;
+            if ((shared_mem->medium_type == 0) && (shared_mem->big_type == 0))
+            {
+              shared_mem->portmaster_action = 0;
+              flag = 1;
+            }
           }
-        }
-        else
-        {
-          if ((shared_mem->medium_type != 1) && (shared_mem->big_type != 1))
+          else
           {
             shared_mem->portmaster_action = 0;
+            flag = 1;
           }
         }
 
         //Checking if there are availiable spots
-        if (shared_mem->small_spaces == 0)
+        if ((shared_mem->small_spaces == 0) && (flag == 0))
         {
-          if (shared_mem->waiting_upgrade != 1)
+          if (shared_mem->waiting_upgrade == 0)
           {
             shared_mem->portmaster_action = 1;
+            flag = 1;
           }
           else
           {
             if ((shared_mem->medium_spaces == 0) && (shared_mem->big_spaces == 0))
             {
               shared_mem->portmaster_action = 1;
+              flag = 1;
             }
           }
         }
 
         //Finding a parking spot for the vessel
-        shared_mem->portmaster_action = 2;
+        if (flag == 0)
+        {
+          shared_mem->portmaster_action = 2;
+          shared_mem->small_spaces--;
+        }
       }
-
-      if (strcmp(shared_mem->waiting_type, "M") == 0)
+      else if (strcmp(shared_mem->waiting_type, "M") == 0)
       {
         //Checking if the port can support medium vessels
-        if (shared_mem->waiting_upgrade != 1)
+        if (shared_mem->medium_type == 0)
         {
-          if (shared_mem->medium_type != 1)
+          if (shared_mem->waiting_upgrade == 1)
           {
-            shared_mem->portmaster_action = 0;
+            if (shared_mem->big_type == 0)
+            {
+              shared_mem->portmaster_action = 0;
+              flag = 1;
+            }
           }
-        }
-        else
-        {
-          if (shared_mem->big_type != 1)
+          else
           {
             shared_mem->portmaster_action = 0;
+            flag = 1;
           }
         }
 
         //Checking if there are availiable spots
-        if (shared_mem->medium_spaces == 0)
+        if ((shared_mem->medium_spaces == 0) && (flag == 0))
         {
-          if (shared_mem->waiting_upgrade != 1)
+          if (shared_mem->waiting_upgrade == 0)
           {
             shared_mem->portmaster_action = 1;
+            flag = 1;
           }
           else
           {
             if (shared_mem->big_spaces == 0)
             {
               shared_mem->portmaster_action = 1;
+              flag = 1;
             }
           }
         }
 
         //Finding a parking spot for the vessel
-        shared_mem->portmaster_action = 2;
+        if (flag == 0)
+        {
+          shared_mem->portmaster_action = 2;
+          shared_mem->medium_spaces--;
+        }
       }
-
-      if (strcmp(shared_mem->waiting_type, "L") == 0)
+      else if (strcmp(shared_mem->waiting_type, "L") == 0)
       {
         //Checking if the port can support large vessels
-        if (shared_mem->big_type != 1)
+        if (shared_mem->big_type == 0)
         {
           shared_mem->portmaster_action = 0;
+          flag = 1;
         }
 
         //Checking if there are availiable spots
-        if (shared_mem->big_spaces == 0)
+        if ((flag == 0) && (shared_mem->big_spaces == 0))
         {
           shared_mem->portmaster_action = 1;
+          flag = 1;
         }
 
-        //Finding a parking spot for the vessel
-        shared_mem->portmaster_action = 2;
+        if (flag == 0)
+        {
+          shared_mem->portmaster_action = 2;
+          shared_mem->big_spaces--;
+        }
       }
 
       //Answering the vessel
@@ -164,15 +185,15 @@ int main(int argc, char **argv){
         //sure no one is moving in the port before answering
         for (i = 0; i < shared_mem->total_spaces; i++)
         {
-          //Finding an empty space to park the vessel
-          //printf("%s %s\n", shared_mem->waiting_type, spaces_array[i].type);
-          // if ((strcmp(shared_mem->waiting_type, spaces_array[i].type) == 0) && (spaces_array[i].empty == 1))
-          // {
-          //   printf("Vessel %d will park on %d\n", shared_mem->vessel_id, spaces_array[i].parking_space_id);
-          //   spaces_array[i].vessel_id = shared_mem->vessel_id;
-          //   spaces_array[i].empty = 0;
-          //   break;
-          // }
+          if ((strcmp(shared_mem->parking_spaces[i].type, shared_mem->waiting_type) == 0) && (shared_mem->parking_spaces[i].empty == 1))
+          {
+            //We found an empty space for the current vessel
+            printf("WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW");
+            printf(" Vessel %d will park on %d\n", shared_mem->vessel_id, shared_mem->parking_spaces[i].parking_space_id);
+            shared_mem->parking_spaces[i].empty = 0;
+            shared_mem->parking_spaces[i].vessel_id = shared_mem->vessel_id;
+            break;
+          }
         }
         sem_wait(&shared_mem->port);
       }
@@ -187,13 +208,24 @@ int main(int argc, char **argv){
       //Waits for when noone is moving inside the port
       for (i = 0; i < shared_mem->total_spaces; i++)
       {
-        //Finding an empty space to park the vessel
-        // if (spaces_array[i].vessel_id == shared_mem->vessel_id)
-        // {
-        //   printf("Vessel %d will unpark from %d\n", shared_mem->vessel_id, spaces_array[i].parking_space_id);
-        //   spaces_array[i].empty = 1;
-        //   break;
-        // }
+        if (shared_mem->parking_spaces[i].vessel_id == shared_mem->vessel_id)
+        {
+          printf("Vessel %d will unpark from %d\n", shared_mem->vessel_id, shared_mem->parking_spaces[i].parking_space_id);
+          shared_mem->parking_spaces[i].empty = 1;
+          if (strcmp(shared_mem->parking_spaces[i].type, "S") == 0)
+          {
+            shared_mem->small_spaces--;
+          }
+          else if (strcmp(shared_mem->parking_spaces[i].type, "M") == 0)
+          {
+            shared_mem->medium_spaces--;
+          }
+          else if (strcmp(shared_mem->parking_spaces[i].type, "L") == 0)
+          {
+            shared_mem->big_spaces++;
+          }
+          break;
+        }
       }
       sem_wait(&shared_mem->port);
       sem_post(&shared_mem->answer);
