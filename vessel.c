@@ -27,7 +27,7 @@ int main(int argc, char **argv){
       }
       else
       {
-        printf("type can only be S, M or L\n");
+        printf("Type can only be S, M or L\n");
         exit(-1);
       }
 
@@ -67,7 +67,7 @@ int main(int argc, char **argv){
     exit(-1);
   }
 
-  printf("Vessel %d is approaching the port\n", getpid());
+  printf("Vessel %d is approaching the port\n", (int)getpid());
 
   //The vessel stays in the open sea and waits in the FIFO queue
   sem_wait(&shared_mem->approaching);
@@ -78,9 +78,9 @@ int main(int argc, char **argv){
 
     //The vessel can now wake up the port-master and ask him where to park
     strcpy(shared_mem->waiting_type, type);
+    shared_mem->vessel_id = (int)getpid();
     shared_mem->waiting_upgrade = upgrade;
     shared_mem->vessel_action = 0;
-
     sem_post(&shared_mem->portmaster);
 
     printf("Vessel %d is waiting for an answer from the port-master\n", getpid());
@@ -93,6 +93,7 @@ int main(int argc, char **argv){
     if (shared_mem->portmaster_action == 0)
     {
       //This vessel can't park in this port so it has to leave
+      sem_post(&shared_mem->portmaster);
       return 0;
     }
     else if (shared_mem->portmaster_action == 1)
@@ -124,19 +125,27 @@ int main(int argc, char **argv){
   {
     sleep(1);
 
+    if (i > (parkperiod / 2))
+    {
+      //Ask for the bill so far
+    }
   }
 
 
   //Asking the port-master to leave
-  //sem_wait(&shared_mem->mutex);
-  //shared_mem->vessel_action = 1;
-  //sem_post(&shared_mem->mutex);
+  shared_mem->vessel_action = 1;
+  shared_mem->vessel_id = (int)getpid();
+  sem_post(&shared_mem->portmaster);
 
-  //sem_post(&shared_mem->portmaster);
+  //Wait until the port-master says it's ok to leave
+  sem_wait(&shared_mem->answer);
 
-  //The vessel can now leave
-  sem_wait(&shared_mem->port);
+  //The portmaster can now help other vessels
+  sem_post(&shared_mem->portmaster);
+
   sleep(mantime);
+
+  //The vessel has left the port, so now noone is moving inside it
   sem_post(&shared_mem->port);
 
   //Detaching the shared memory before exiting

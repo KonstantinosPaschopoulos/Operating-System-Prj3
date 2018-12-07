@@ -17,9 +17,10 @@
 
 int main(int argc, char **argv){
   FILE *configfile = NULL;
+  void *shm;
   shm_management *shared_mem;
-  char line[300], action[20], type[1], str_id[300], vessel_name[300], parkingtime_str[300], mantime_str[300];
-  int value, id, err, i, status, temp;
+  char whole_line[100], action[100], type[1], str_id[300], vessel_name[300], parkingtime_str[300], mantime_str[300];
+  int value, id, err, i, status, temp, total_spaces;
   pid_t port_master, vessel;
 
   //Parsing the input
@@ -44,8 +45,28 @@ int main(int argc, char **argv){
     exit(-1);
   }
 
-  //Create the shared memory segment
-  id = shmget(IPC_PRIVATE, SEGMENTSIZE, SEGMENTPERM);
+  //Finding how many parking spaces we will have in total
+  //in order to allocate the correct amount of space in the shared memory
+  total_spaces = 0;
+  while (fgets(whole_line, 100, configfile))
+  {
+    if ((strlen(whole_line) > 0) && (whole_line[strlen(whole_line) - 1] == '\n'))
+    {
+      whole_line[strlen(whole_line) - 1] = '\0';
+    }
+
+
+    sscanf(whole_line, "%s\t%s\t%d", action, type, &value);
+
+    if (strcmp(action, "spaces") == 0)
+    {
+      total_spaces += value;
+    }
+  }
+  rewind(configfile);
+
+  //We need to allocate enough space for the main struct + the array of parking space structs
+  id = shmget(IPC_PRIVATE, sizeof(shm_management) + (total_spaces * sizeof(parking_space)), SEGMENTPERM);
   if (id == -1)
   {
     perror("Could not create the shared memory segment");
@@ -53,14 +74,17 @@ int main(int argc, char **argv){
   }
 
   //Attach the shared memory
-  shared_mem = (shm_management *)shmat(id, (void *) 0, 0);
-  if (shared_mem == (void *) - 1)
+  shm = shmat(id, (void *) 0, 0);
+  if (shm == (void *) - 1)
   {
     perror("Could not attach the shared memory");
     exit(-1);
   }
+  shared_mem = (shm_management *) shm;
+  shared_mem->parking_spaces = (parking_space *)(shm + sizeof(shm_management));
 
   //Initializing the shared memory
+  shared_mem->total_spaces = total_spaces;
   shared_mem->small_type = 0;
   shared_mem->medium_type = 0;
   shared_mem->big_type = 0;
@@ -96,15 +120,15 @@ int main(int argc, char **argv){
     exit(3);
   }
 
-  //Loop through the configfile to set the correct parameters
-  while (fgets(line, 300, configfile))
+  total_spaces = 0;
+  while (fgets(whole_line, 100, configfile))
   {
-    if ((strlen(line) > 0) && (line[strlen(line) - 1] == '\n'))
+    if ((strlen(whole_line) > 0) && (whole_line[strlen(whole_line) - 1] == '\n'))
     {
-      line[strlen(line) - 1] = '\0';
+      whole_line[strlen(whole_line) - 1] = '\0';
     }
 
-    sscanf(line, "%s\t%s\t%d", action, type, &value);
+    sscanf(whole_line, "%s\t%s\t%d", action, type, &value);
 
     if (strcmp(action, "spaces") == 0)
     {
@@ -112,31 +136,37 @@ int main(int argc, char **argv){
       {
         shared_mem->small_type = 1;
         shared_mem->small_spaces = value;
-        // if (sem_init(&shared_mem->small_spaces, 1, value) != 0)
-        // {
-        //   perror("Could not initialize semaphore");
-        //   exit(3);
-        // }
+        for (i = 0; i < value; i++)
+        {
+          strcpy(shared_mem->parking_spaces[i + total_spaces].type, "S");
+          shared_mem->parking_spaces[i + total_spaces].empty = 1;
+          shared_mem->parking_spaces[i + total_spaces].parking_space_id = i + total_spaces;
+        }
+        total_spaces += value;
       }
       else if (strcmp(type, "M") == 0)
       {
         shared_mem->medium_type = 1;
         shared_mem->medium_spaces = value;
-        // if (sem_init(&shared_mem->medium_spaces, 1, value) != 0)
-        // {
-        //   perror("Could not initialize semaphore");
-        //   exit(3);
-        // }
+        for (i = 0; i < value; i++)
+        {
+          strcpy(shared_mem->parking_spaces[i + total_spaces].type, "M");
+          shared_mem->parking_spaces[i + total_spaces].empty = 1;
+          shared_mem->parking_spaces[i + total_spaces].parking_space_id = i + total_spaces;
+        }
+        total_spaces += value;
       }
       else
       {
         shared_mem->big_type = 1;
         shared_mem->big_spaces = value;
-        // if (sem_init(&shared_mem->big_spaces, 1, value) != 0)
-        // {
-        //   perror("Could not initialize semaphore");
-        //   exit(3);
-        // }
+        for (i = 0; i < value; i++)
+        {
+          strcpy(shared_mem->parking_spaces[i + total_spaces].type, "L");
+          shared_mem->parking_spaces[i + total_spaces].empty = 1;
+          shared_mem->parking_spaces[i + total_spaces].parking_space_id = i + total_spaces;
+        }
+        total_spaces += value;
       }
     }
     else if (strcmp(action, "cost") == 0)
@@ -155,11 +185,10 @@ int main(int argc, char **argv){
       }
     }
   }
-
   fclose(configfile);
 
-  //After the shared memory is set up
-  //myport prints the id so that other processes can use it
+  //After the shared memory is set up myport prints
+  //the id so that other processes can use it
   printf("Shared memory segment: %d\n", id);
   sprintf(str_id, "%d", id);
 
@@ -233,7 +262,7 @@ int main(int argc, char **argv){
   //Signal the other processes to stop executing
   shared_mem->vessel_action = -1;
   sem_post(&shared_mem->portmaster);
-  sleep(3);
+  sleep(1);
 
   printf("Press enter again to exit the program\n");
   getchar();

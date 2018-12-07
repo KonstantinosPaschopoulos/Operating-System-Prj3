@@ -17,6 +17,7 @@
 int main(int argc, char **argv){
   int i, shmid, err;
   shm_management *shared_mem;
+  void *shm;
 
   //Parsing the input
   for (i = 1; i < argc; i++)
@@ -28,17 +29,24 @@ int main(int argc, char **argv){
     }
     else
     {
-      printf("Only use the following flag: -s\n");
+      printf("Only use the following flags: -s or -c\n");
       exit(-1);
     }
   }
 
   //Attaching the shared memory
-  shared_mem = (shm_management *)shmat(shmid, (void *) 0, 0);
-  if (shared_mem == (void *) - 1)
+  shm = shmat(shmid, (void *) 0, 0);
+  if (shm == (void *) - 1)
   {
     perror("Could not attach the shared memory");
     exit(-1);
+  }
+  shared_mem = (shm_management *)shm;
+  shared_mem->parking_spaces = (parking_space *)(shm + sizeof(shm_management));
+
+  for (i = 0; i < shared_mem->total_spaces; i++)
+  {
+    printf("%d %s\n", shared_mem->parking_spaces[i].parking_space_id, shared_mem->parking_spaces[i].type);
   }
 
   printf("The port-master is ready\n");
@@ -154,12 +162,41 @@ int main(int argc, char **argv){
       {
         //The vessel can park somewhere but the port-master has to make
         //sure no one is moving in the port before answering
+        for (i = 0; i < shared_mem->total_spaces; i++)
+        {
+          //Finding an empty space to park the vessel
+          //printf("%s %s\n", shared_mem->waiting_type, spaces_array[i].type);
+          // if ((strcmp(shared_mem->waiting_type, spaces_array[i].type) == 0) && (spaces_array[i].empty == 1))
+          // {
+          //   printf("Vessel %d will park on %d\n", shared_mem->vessel_id, spaces_array[i].parking_space_id);
+          //   spaces_array[i].vessel_id = shared_mem->vessel_id;
+          //   spaces_array[i].empty = 0;
+          //   break;
+          // }
+        }
         sem_wait(&shared_mem->port);
       }
       sem_post(&shared_mem->answer);
 
       //The port-master will be unavailable until the vessel
       //has received the answer
+      sem_wait(&shared_mem->portmaster);
+    }
+    else if (shared_mem->vessel_action == 1)
+    {
+      //Waits for when noone is moving inside the port
+      for (i = 0; i < shared_mem->total_spaces; i++)
+      {
+        //Finding an empty space to park the vessel
+        // if (spaces_array[i].vessel_id == shared_mem->vessel_id)
+        // {
+        //   printf("Vessel %d will unpark from %d\n", shared_mem->vessel_id, spaces_array[i].parking_space_id);
+        //   spaces_array[i].empty = 1;
+        //   break;
+        // }
+      }
+      sem_wait(&shared_mem->port);
+      sem_post(&shared_mem->answer);
       sem_wait(&shared_mem->portmaster);
     }
     else if (shared_mem->vessel_action == -1)
