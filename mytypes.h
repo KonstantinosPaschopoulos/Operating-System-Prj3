@@ -1,5 +1,6 @@
 //File: mytypes.h
 //I'm defining here all the types I will use
+
 #include <semaphore.h>
 #include <sys/types.h>
 
@@ -14,16 +15,18 @@ typedef struct parking_space {
   int empty;
   char type[1];
   int vessel_id;
+  double arrival;
 } parking_space;
 
 //A struct that holds a single page of the public ledger
 typedef struct public_ledger {
-  int vessel_id;
+  int status;
   double time_of_arrival;
+  int vessel_id;
   int parking_space_id;
   char boat_type[1];
-  int status;
   int total_cost;
+  double time_of_departure;
   struct public_ledger *next;
 } public_ledger;
 

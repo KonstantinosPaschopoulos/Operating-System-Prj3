@@ -3,7 +3,6 @@
 //Every vessel has to get a permission from him to enter
 //and exit the port
 
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -14,12 +13,56 @@
 #include <unistd.h>
 #include "mytypes.h"
 
+public_ledger * createPublicLedger(){
+  public_ledger *head;
+
+  head = (public_ledger *)malloc(sizeof(public_ledger));
+  if (head == NULL)
+  {
+    perror("Public ledger malloc failed");
+    exit(-1);
+  }
+
+  head->next = NULL;
+
+  return head;
+}
+
+void updatePublicLedger(public_ledger *head, double arrival, int v_id, int ps_id, char *v_type){
+  double departure;
+  public_ledger *tmp = head, *newPage;
+
+  while (tmp->next != NULL)
+  {
+    tmp = tmp->next;
+  }
+
+  newPage = (public_ledger *)malloc(sizeof(public_ledger));
+  if (newPage == NULL)
+  {
+    perror("New page malloc failed");
+    exit(-1);
+  }
+
+  newPage->status = 0;
+  newPage->time_of_arrival = arrival;
+  newPage->vessel_id = v_id;
+  newPage->parking_space_id = ps_id;
+  strcpy(newPage->boat_type, v_type);
+  //totalcost
+  //departure
+  newPage->next = NULL;
+
+  tmp->next = newPage;
+}
+
 int main(int argc, char **argv){
   FILE *charges = NULL;
   char whole_line[100], c_type[1];
   int i, shmid, err, flag, small_cost = -1, medium_cost = -1, big_cost = -1, value;
   void *shm;
   shm_management *shared_mem;
+  public_ledger *head;
 
   //Parsing the input
   for (i = 1; i < argc; i++)
@@ -68,6 +111,9 @@ int main(int argc, char **argv){
       exit(-1);
     }
   }
+
+  //Initializing the public ledger
+  head = createPublicLedger();
 
   //Attaching the shared memory
   shm = shmat(shmid, (void *) 0, 0);
@@ -214,8 +260,7 @@ int main(int argc, char **argv){
           if ((strcmp(shared_mem->parking_spaces[i].type, shared_mem->waiting_type) == 0) && (shared_mem->parking_spaces[i].empty == 1))
           {
             //We found an empty space for the current vessel
-            printf("WWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWWW");
-            printf(" Vessel %d will park on %d\n", shared_mem->vessel_id, shared_mem->parking_spaces[i].parking_space_id);
+            printf("Vessel %d will park on %d\n", shared_mem->vessel_id, shared_mem->parking_spaces[i].parking_space_id);
             shared_mem->parking_spaces[i].empty = 0;
             shared_mem->parking_spaces[i].vessel_id = shared_mem->vessel_id;
             break;
@@ -250,11 +295,17 @@ int main(int argc, char **argv){
           {
             shared_mem->big_spaces++;
           }
+
+          //Updating the public ledger once a vessel departs
+          updatePublicLedger(head, shared_mem->parking_spaces[i].arrival, shared_mem->parking_spaces[i].vessel_id, shared_mem->parking_spaces[i].parking_space_id, shared_mem->parking_spaces[i].type);
+
           break;
         }
       }
       sem_wait(&shared_mem->port);
       sem_post(&shared_mem->answer);
+
+
       sem_wait(&shared_mem->portmaster);
     }
     else if (shared_mem->vessel_action == -1)
