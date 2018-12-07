@@ -218,6 +218,7 @@ int main(int argc, char **argv){
     if (vessel == 0)
     {
       //Creating new vessels
+      srand(getpid());
       sprintf(vessel_name, "%d", getpid());
       sprintf(parkingtime_str, "%d", (rand() % 1 + 1));
       sprintf(mantime_str, "%d", (rand() % 2 + 1));
