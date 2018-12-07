@@ -15,7 +15,9 @@
 #include "mytypes.h"
 
 int main(int argc, char **argv){
-  int i, shmid, err, flag;
+  FILE *charges = NULL;
+  char whole_line[100], c_type[1];
+  int i, shmid, err, flag, small_cost = -1, medium_cost = -1, big_cost = -1, value;
   void *shm;
   shm_management *shared_mem;
 
@@ -29,6 +31,35 @@ int main(int argc, char **argv){
     }
     else if (strcmp(argv[i], "-c") == 0)
     {
+      charges = fopen(argv[i + 1], "r");
+      if (charges == NULL)
+      {
+        perror("Could not open charges file\n");
+        exit(-1);
+      }
+
+      while (fgets(whole_line, 100, charges))
+      {
+        if ((strlen(whole_line) > 0) && (whole_line[strlen(whole_line) - 1] == '\n'))
+        {
+          whole_line[strlen(whole_line) - 1] = '\0';
+        }
+
+        sscanf(whole_line, "%s\t%d", c_type, &value);
+
+        if (strcmp(c_type, "S") == 0)
+        {
+          small_cost = value;
+        }
+        else if (strcmp(c_type, "M") == 0)
+        {
+          medium_cost = value;
+        }
+        else if (strcmp(c_type, "L") == 0)
+        {
+          big_cost = value;
+        }
+      }
       i++;
     }
     else
@@ -47,11 +78,6 @@ int main(int argc, char **argv){
   }
   shared_mem = (shm_management *)shm;
   shared_mem->parking_spaces = (parking_space *)(shm + sizeof(shm_management));
-
-  for (i = 0; i < shared_mem->total_spaces; i++)
-  {
-    printf("%d %s\n", shared_mem->parking_spaces[i].parking_space_id, shared_mem->parking_spaces[i].type);
-  }
 
   //The port-master is constantly working
   while (1)

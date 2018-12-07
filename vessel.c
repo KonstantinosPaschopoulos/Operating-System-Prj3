@@ -74,6 +74,9 @@ int main(int argc, char **argv){
 
   while (1)
   {
+    //Locks the shared memory to ask to park somewhere
+    sem_wait(&shared_mem->mutex);
+
     printf("Vessel %d can now talk with the port-master\n", getpid());
 
     //The vessel can now wake up the port-master and ask him where to park
@@ -109,6 +112,8 @@ int main(int argc, char **argv){
     }
   }
 
+  sem_post(&shared_mem->mutex);
+
   //Free the port-master
   sem_post(&shared_mem->portmaster);
 
@@ -132,6 +137,8 @@ int main(int argc, char **argv){
     }
   }
 
+  //Locks the shared memory to ask to leave
+  sem_wait(&shared_mem->mutex);
 
   //Asking the port-master to leave
   shared_mem->vessel_action = 1;
@@ -140,6 +147,8 @@ int main(int argc, char **argv){
 
   //Wait until the port-master says it's ok to leave
   sem_wait(&shared_mem->answer);
+
+  sem_post(&shared_mem->mutex);
 
   //The portmaster can now help other vessels
   sem_post(&shared_mem->portmaster);

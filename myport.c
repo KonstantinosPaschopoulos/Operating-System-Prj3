@@ -16,7 +16,7 @@
 #include "mytypes.h"
 
 int main(int argc, char **argv){
-  FILE *configfile = NULL;
+  FILE *configfile = NULL, *charges = NULL;
   void *shm;
   shm_management *shared_mem;
   char whole_line[100], action[100], type[1], str_id[300], vessel_name[300], parkingtime_str[300], mantime_str[300];
@@ -35,7 +35,7 @@ int main(int argc, char **argv){
     configfile = fopen(argv[2], "r");
     if (configfile == NULL)
     {
-      printf("Could not open configfile\n");
+      perror("Could not open configfile");
       exit(-1);
     }
   }
@@ -54,7 +54,6 @@ int main(int argc, char **argv){
     {
       whole_line[strlen(whole_line) - 1] = '\0';
     }
-
 
     sscanf(whole_line, "%s\t%s\t%d", action, type, &value);
 
@@ -121,6 +120,12 @@ int main(int argc, char **argv){
   }
 
   total_spaces = 0;
+  charges = fopen("chargesfile", "w");
+  if (charges == NULL)
+  {
+    perror("Couldn't create charges file");
+    exit(-1);
+  }
   while (fgets(whole_line, 100, configfile))
   {
     if ((strlen(whole_line) > 0) && (whole_line[strlen(whole_line) - 1] == '\n'))
@@ -173,18 +178,22 @@ int main(int argc, char **argv){
     {
       if (strcmp(type, "S") == 0)
       {
+        fprintf(charges, "S\t%d\n", value);
         shared_mem->small_cost = value;
       }
       else if (strcmp(type, "M") == 0)
       {
+        fprintf(charges, "M\t%d\n", value);
         shared_mem->medium_cost = value;
       }
       else
       {
+        fprintf(charges, "L\t%d\n", value);
         shared_mem->big_cost = value;
       }
     }
   }
+  fclose(charges);
   fclose(configfile);
 
   //After the shared memory is set up myport prints
@@ -201,13 +210,13 @@ int main(int argc, char **argv){
   if (port_master == 0)
   {
     //Calling the portmaster process to keep track of the port
-    execl("portmaster", "portmaster", "-s", str_id, NULL);
+    execl("portmaster", "portmaster", "-s", str_id, "-c", "chargesfile", NULL);
 
     perror("Port-master failed to exec");
     exit(-1);
   }
 
-  for (i = 0; i < 3; i++)
+  for (i = 0; i < 5; i++)
   {
     vessel = fork();
     if (vessel < 0)
@@ -251,7 +260,7 @@ int main(int argc, char **argv){
       exit(-1);
     }
   }
-  for (i = 0; i < 3; i++)
+  for (i = 0; i < 5; i++)
   {
     wait(&status);
   }
@@ -275,6 +284,7 @@ int main(int argc, char **argv){
     perror("Could not remove shared memory segment");
     exit(2);
   }
+  remove("chargesfile");
 
   return 0;
 }
