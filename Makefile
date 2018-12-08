@@ -5,20 +5,30 @@ all:    myport \
 	vessel \
 	portmaster
 
-myport:   myport.c
+myport:   myport.o myfunctions.o
+	$(CC)  myport.o myfunctions.o -o myport -lpthread
+
+vessel:   vessel.o myfunctions.o
+	$(CC)  vessel.o myfunctions.o -o vessel -lpthread
+
+portmaster:   portmaster.o myfunctions.o
+	$(CC)  portmaster.o myfunctions.o -o portmaster -lpthread
+
+myfunctions.o:   myfunctions.c myfunctions.h
+	$(CC)  $(CFLAGS) myfunctions.c
+
+myport.o:   myport.c
 	$(CC)  $(CFLAGS) myport.c
-	$(CC)  myport.o -o myport -lpthread
 
-vessel:   vessel.c
+vessel.o:   vessel.c
 	$(CC)  $(CFLAGS) vessel.c
-	$(CC)  vessel.o -o vessel -lpthread
 
-portmaster:   portmaster.c
+portmaster.o:   portmaster.c
 	$(CC)  $(CFLAGS) portmaster.c
-	$(CC)  portmaster.o -o portmaster -lpthread
 
 clean:
 	rm -f   \
 		myport.o myport	\
 		vessel.o vessel	\
-		portmaster.o portmaster
+		portmaster.o portmaster \
+		myfunctions.o

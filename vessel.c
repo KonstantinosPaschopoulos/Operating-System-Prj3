@@ -10,6 +10,7 @@
 #include <sys/shm.h>
 #include <unistd.h>
 #include "mytypes.h"
+#include "myfunctions.h"
 
 int main(int argc, char **argv){
   int i, upgrade = 0, parkperiod, mantime, shmid, err;

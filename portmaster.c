@@ -13,6 +13,7 @@
 #include <sys/shm.h>
 #include <unistd.h>
 #include "mytypes.h"
+#include "myfunctions.h"
 
 public_ledger * createPublicLedger(){
   public_ledger *head;
@@ -309,18 +310,21 @@ int main(int argc, char **argv){
         //sure no one is moving in the port before answering
         for (i = 0; i < shared_mem->total_spaces; i++)
         {
+          //Finding an empty space for the current vessel
           if ((strcmp(shared_mem->parking_spaces[i].type, shared_mem->waiting_type) == 0) && (shared_mem->parking_spaces[i].empty == 1))
           {
-            //We found an empty space for the current vessel
-            printf("Vessel %d will park on %d\n", shared_mem->vessel_id, shared_mem->parking_spaces[i].parking_space_id);
+            //Waiting until noone is moving inside the port
+            sem_wait(&shared_mem->port);
+
+            //printf("Vessel %d will park on %d\n", shared_mem->vessel_id, shared_mem->parking_spaces[i].parking_space_id);
             gettimeofday(&time, NULL);
             shared_mem->parking_spaces[i].arrival = time.tv_sec;
             shared_mem->parking_spaces[i].empty = 0;
             shared_mem->parking_spaces[i].vessel_id = shared_mem->vessel_id;
+            write_to_logfile("entered the port at:", shared_mem->vessel_id, time.tv_sec);
             break;
           }
         }
-        sem_wait(&shared_mem->port);
       }
       sem_post(&shared_mem->answer);
 

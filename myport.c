@@ -14,6 +14,7 @@
 #include <unistd.h>
 #include <time.h>
 #include "mytypes.h"
+#include "myfunctions.h"
 
 int main(int argc, char **argv){
   FILE *configfile = NULL, *charges = NULL;
@@ -22,6 +23,8 @@ int main(int argc, char **argv){
   char whole_line[100], action[100], type[1], str_id[300], vessel_name[300], parkingtime_str[300], mantime_str[300];
   int value, id, err, i, status, temp, total_spaces;
   pid_t port_master, vessel;
+
+  create_logfile();
 
   //Parsing the input
   if (argc != 3)
@@ -230,7 +233,7 @@ int main(int argc, char **argv){
       srand(getpid());
       sprintf(vessel_name, "%d", getpid());
       sprintf(parkingtime_str, "%d", (rand() % 1 + 1));
-      sprintf(mantime_str, "%d", (rand() % 2 + 1));
+      sprintf(mantime_str, "%d", (rand() % 10 + 1));
       temp = rand() % 3;
       if (temp == 1)
       {
@@ -284,7 +287,11 @@ int main(int argc, char **argv){
     perror("Could not remove shared memory segment");
     exit(2);
   }
-  remove("chargesfile");
+  if (remove("chargesfile") == -1)
+  {
+    perror("Couldn't remove charges file");
+    exit(2);
+  }
 
   return 0;
 }
