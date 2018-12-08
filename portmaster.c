@@ -8,6 +8,7 @@
 #include <string.h>
 #include <semaphore.h>
 #include <sys/types.h>
+#include <sys/time.h>
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <unistd.h>
@@ -28,8 +29,8 @@ public_ledger * createPublicLedger(){
   return head;
 }
 
-void updatePublicLedger(public_ledger *head, double arrival, int v_id, int ps_id, char *v_type){
-  double departure;
+void updatePublicLedger(public_ledger *head, time_t arrival, int v_id, int ps_id, char *v_type, int cost_type){
+  struct timeval time;
   public_ledger *tmp = head, *newPage;
 
   while (tmp->next != NULL)
@@ -49,20 +50,71 @@ void updatePublicLedger(public_ledger *head, double arrival, int v_id, int ps_id
   newPage->vessel_id = v_id;
   newPage->parking_space_id = ps_id;
   strcpy(newPage->boat_type, v_type);
-  //totalcost
-  //departure
+  gettimeofday(&time, NULL);
+  newPage->time_of_departure = time.tv_sec;
+  newPage->total_cost = (newPage->time_of_departure - newPage->time_of_arrival) * cost_type;
   newPage->next = NULL;
 
   tmp->next = newPage;
 }
 
+void printingPublicLedger(public_ledger *head, int shmid){
+  public_ledger *tmp = head->next;
+  int i, err;
+  void *shm;
+  shm_management *shared_mem;
+
+  //Attaching the shared memory
+  shm = shmat(shmid, (void *) 0, 0);
+  if (shm == (void *) - 1)
+  {
+    perror("Could not attach the shared memory");
+    exit(-1);
+  }
+  shared_mem = (shm_management *)shm;
+  shared_mem->parking_spaces = (parking_space *)(shm + sizeof(shm_management));
+
+  printf("\n**************PUBLIC LEDGER**************\n\n");
+  printf("**********CURRENT STATE OF PORT**********\n");
+  for (i = 0; i < shared_mem->total_spaces; i++)
+  {
+    printf("Parking Space ID: %d\n", shared_mem->parking_spaces[i].parking_space_id);
+    printf("Empty or not: %d\n", shared_mem->parking_spaces[i].empty);
+    printf("Type: %s\n", shared_mem->parking_spaces[i].type);
+    printf("Vessel ID: %d\n", shared_mem->parking_spaces[i].vessel_id);
+    printf("Time of Arrival of the Currently Parked Vessel: %ld\n\n", shared_mem->parking_spaces[i].arrival);
+  }
+
+  printf("***********HISTORY OF THE PORT***********\n");
+  while (tmp != NULL)
+  {
+    printf("Parking Space ID: %d\n", tmp->parking_space_id);
+    printf("Status of Vessel: %d\n", tmp->status);
+    printf("Type: %s\n", tmp->boat_type);
+    printf("Vessel ID: %d\n", tmp->vessel_id);
+    printf("Time of Arrival: %ld\n", tmp->time_of_arrival);
+    printf("Time of Departure: %ld\n", tmp->time_of_departure);
+    printf("Total Cost: %d\n\n", tmp->total_cost);
+    tmp = tmp->next;
+  }
+
+  //Detaching the shared memory before exiting
+  err = shmdt((void *)shared_mem);
+  if (err == -1)
+  {
+    perror("Could not detach shared memory");
+    exit(-1);
+  }
+}
+
 int main(int argc, char **argv){
   FILE *charges = NULL;
   char whole_line[100], c_type[1];
-  int i, shmid, err, flag, small_cost = -1, medium_cost = -1, big_cost = -1, value;
+  int i, shmid, err, flag, small_cost = -1, medium_cost = -1, big_cost = -1, value, cost;
   void *shm;
   shm_management *shared_mem;
   public_ledger *head;
+  struct timeval time;
 
   //Parsing the input
   for (i = 1; i < argc; i++)
@@ -261,6 +313,8 @@ int main(int argc, char **argv){
           {
             //We found an empty space for the current vessel
             printf("Vessel %d will park on %d\n", shared_mem->vessel_id, shared_mem->parking_spaces[i].parking_space_id);
+            gettimeofday(&time, NULL);
+            shared_mem->parking_spaces[i].arrival = time.tv_sec;
             shared_mem->parking_spaces[i].empty = 0;
             shared_mem->parking_spaces[i].vessel_id = shared_mem->vessel_id;
             break;
@@ -285,19 +339,24 @@ int main(int argc, char **argv){
           shared_mem->parking_spaces[i].empty = 1;
           if (strcmp(shared_mem->parking_spaces[i].type, "S") == 0)
           {
+            cost = small_cost;
             shared_mem->small_spaces--;
           }
           else if (strcmp(shared_mem->parking_spaces[i].type, "M") == 0)
           {
+            cost = medium_cost;
             shared_mem->medium_spaces--;
           }
           else if (strcmp(shared_mem->parking_spaces[i].type, "L") == 0)
           {
+            cost = big_cost;
             shared_mem->big_spaces++;
           }
 
           //Updating the public ledger once a vessel departs
-          updatePublicLedger(head, shared_mem->parking_spaces[i].arrival, shared_mem->parking_spaces[i].vessel_id, shared_mem->parking_spaces[i].parking_space_id, shared_mem->parking_spaces[i].type);
+          updatePublicLedger(head, shared_mem->parking_spaces[i].arrival, shared_mem->parking_spaces[i].vessel_id, shared_mem->parking_spaces[i].parking_space_id, shared_mem->parking_spaces[i].type, cost);
+          shared_mem->parking_spaces[i].vessel_id = 0;
+          shared_mem->parking_spaces[i].arrival = 0;
 
           break;
         }
@@ -318,6 +377,9 @@ int main(int argc, char **argv){
     //Ready to accept the next vessel
     sem_post(&shared_mem->approaching);
   }
+
+  //Printing the whole public ledger before exiting
+  printingPublicLedger(head, shmid);
 
   //Detaching the shared memory before exiting
   err = shmdt((void *)shared_mem);

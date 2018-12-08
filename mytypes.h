@@ -15,18 +15,18 @@ typedef struct parking_space {
   int empty;
   char type[1];
   int vessel_id;
-  double arrival;
+  time_t arrival;
 } parking_space;
 
 //A struct that holds a single page of the public ledger
 typedef struct public_ledger {
   int status;
-  double time_of_arrival;
+  time_t time_of_arrival;
   int vessel_id;
   int parking_space_id;
   char boat_type[1];
   int total_cost;
-  double time_of_departure;
+  time_t time_of_departure;
   struct public_ledger *next;
 } public_ledger;
 
