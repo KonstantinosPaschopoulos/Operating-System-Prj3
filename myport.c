@@ -146,7 +146,7 @@ int main(int argc, char **argv){
         shared_mem->small_spaces = value;
         for (i = 0; i < value; i++)
         {
-          strcpy(shared_mem->parking_spaces[i + total_spaces].type, "S");
+          strcpy(shared_mem->parking_spaces[i + total_spaces].type, type);
           shared_mem->parking_spaces[i + total_spaces].empty = 1;
           shared_mem->parking_spaces[i + total_spaces].parking_space_id = i + total_spaces;
         }
@@ -158,7 +158,7 @@ int main(int argc, char **argv){
         shared_mem->medium_spaces = value;
         for (i = 0; i < value; i++)
         {
-          strcpy(shared_mem->parking_spaces[i + total_spaces].type, "M");
+          strcpy(shared_mem->parking_spaces[i + total_spaces].type, type);
           shared_mem->parking_spaces[i + total_spaces].empty = 1;
           shared_mem->parking_spaces[i + total_spaces].parking_space_id = i + total_spaces;
         }
@@ -170,7 +170,7 @@ int main(int argc, char **argv){
         shared_mem->big_spaces = value;
         for (i = 0; i < value; i++)
         {
-          strcpy(shared_mem->parking_spaces[i + total_spaces].type, "L");
+          strcpy(shared_mem->parking_spaces[i + total_spaces].type, type);
           shared_mem->parking_spaces[i + total_spaces].empty = 1;
           shared_mem->parking_spaces[i + total_spaces].parking_space_id = i + total_spaces;
         }
@@ -231,9 +231,9 @@ int main(int argc, char **argv){
     {
       //Creating new vessels
       srand(getpid());
-      sprintf(vessel_name, "%d", getpid());
-      sprintf(parkingtime_str, "%d", (rand() % 1 + 1));
-      sprintf(mantime_str, "%d", (rand() % 10 + 1));
+      sprintf(vessel_name, "%d", (int)getpid());
+      sprintf(parkingtime_str, "%d", (rand() % 3 + 1));
+      sprintf(mantime_str, "%d", (rand() % 2 + 1));
       temp = rand() % 3;
       if (temp == 1)
       {

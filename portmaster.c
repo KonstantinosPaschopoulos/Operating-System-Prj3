@@ -389,10 +389,10 @@ int main(int argc, char **argv){
   }
 
   //Printing the whole public ledger before exiting
-  printingPublicLedger(head, shmid);
+  //printingPublicLedger(head, shmid);
 
   //Detaching the shared memory before exiting
-  err = shmdt((void *)shared_mem);
+  err = shmdt((void *)shm);
   if (err == -1)
   {
     perror("Could not detach shared memory");

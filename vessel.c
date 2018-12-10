@@ -9,12 +9,15 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <unistd.h>
+#include <sys/time.h>
 #include "mytypes.h"
 #include "myfunctions.h"
 
 int main(int argc, char **argv){
-  int i, upgrade = 0, parkperiod, mantime, shmid, err;
+  int i, j, upgrade = 0, parkperiod, mantime, shmid, err, cost;
   shm_management *shared_mem;
+  void *shm;
+  struct timeval time;
   char type[1];
 
   //Parsing the input
@@ -61,12 +64,14 @@ int main(int argc, char **argv){
   }
 
   //Attaching the shared memory
-  shared_mem = (shm_management *)shmat(shmid, (void *) 0, 0);
-  if (shared_mem == (void *) - 1)
+  shm = shmat(shmid, (void *) 0, 0);
+  if (shm == (void *) - 1)
   {
     perror("Could not attach the shared memory");
     exit(-1);
   }
+  shared_mem = (shm_management *) shm;
+  parking_space *public_ledger = (parking_space *)(shm + sizeof(shm_management));
 
   printf("Vessel %d is approaching the port\n", (int)getpid());
 
@@ -132,9 +137,31 @@ int main(int argc, char **argv){
   {
     sleep(1);
 
-    if (i > (parkperiod / 2))
+    //Ask for the bill so far
+    if (i == 0)
     {
-      //Ask for the bill so far
+      sem_wait(&shared_mem->mutex);
+      for (j = 0; j < shared_mem->total_spaces; j++)
+      {
+        if ((int)getpid() == public_ledger[j].vessel_id)
+        {
+          if (strcmp(public_ledger[j].type, "S") == 0)
+          {
+            cost = shared_mem->small_cost;
+          }
+          else if (strcmp(public_ledger[j].type, "M") == 0)
+          {
+            cost = shared_mem->medium_cost;
+          }
+          else if (strcmp(public_ledger[j].type, "L") == 0)
+          {
+            cost = shared_mem->big_cost;
+          }
+          gettimeofday(&time, NULL);
+          printf("The current cost for the vessel %d is: %ld\n", (int)getpid(), (time.tv_sec - public_ledger[j].arrival) * cost);
+        }
+      }
+      sem_post(&shared_mem->mutex);
     }
   }
 
@@ -160,7 +187,7 @@ int main(int argc, char **argv){
   sem_post(&shared_mem->port);
 
   //Detaching the shared memory before exiting
-  err = shmdt((void *)shared_mem);
+  err = shmdt((void *)shm);
   if (err == -1)
   {
     perror("Could not detach shared memory");

@@ -49,10 +49,13 @@ typedef struct shm_management {
   int big_cost;
   int profit;
   float avg_profit;
+  float avg_small_profit;
+  float avg_medium_profit;
+  float avg_big_profit;
   float avg_waiting_time;
-  int small_waiting;
-  int medium_waiting;
-  int big_waiting;
+  float small_waiting;
+  float medium_waiting;
+  float big_waiting;
   char waiting_type[1];
   int waiting_upgrade;
   int vessel_action;
