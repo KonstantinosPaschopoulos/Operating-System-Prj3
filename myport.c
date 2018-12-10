@@ -22,7 +22,7 @@ int main(int argc, char **argv){
   shm_management *shared_mem;
   char whole_line[100], action[100], type[1], str_id[300], vessel_name[300], parkingtime_str[300], mantime_str[300];
   int value, id, err, i, status, temp, total_spaces;
-  pid_t port_master, vessel;
+  pid_t port_master, vessel, monitor;
 
   create_logfile();
 
@@ -219,6 +219,20 @@ int main(int argc, char **argv){
     exit(-1);
   }
 
+  monitor = fork();
+  if (monitor < 0)
+  {
+    perror("Monitor fork failed");
+    exit(-1);
+  }
+  if (monitor == 0)
+  {
+    execl("monitor", "monitor", "-s", str_id, "-d", "4", "-t", "6", NULL);
+
+    perror("Monitor failed to exec");
+    exit(-1);
+  }
+
   for (i = 0; i < 5; i++)
   {
     vessel = fork();
@@ -277,7 +291,7 @@ int main(int argc, char **argv){
   sem_post(&shared_mem->portmaster);
   sleep(1);
 
-  printf("Press enter again to exit the program\n");
+  printf("Press enter again when eveything has finished\n");
   getchar();
 
   //After everything is done remove the resources

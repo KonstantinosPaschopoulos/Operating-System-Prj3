@@ -3,7 +3,8 @@ CFLAGS=  -g -c -Wall
 
 all:    myport \
 	vessel \
-	portmaster
+	portmaster \
+	monitor
 
 myport:   myport.o myfunctions.o
 	$(CC)  myport.o myfunctions.o -o myport -lpthread
@@ -13,6 +14,9 @@ vessel:   vessel.o myfunctions.o
 
 portmaster:   portmaster.o myfunctions.o
 	$(CC)  portmaster.o myfunctions.o -o portmaster -lpthread
+
+monitor:   monitor.o myfunctions.o
+	$(CC)  monitor.o myfunctions.o -o monitor -lpthread
 
 myfunctions.o:   myfunctions.c myfunctions.h
 	$(CC)  $(CFLAGS) myfunctions.c
@@ -26,9 +30,13 @@ vessel.o:   vessel.c
 portmaster.o:   portmaster.c
 	$(CC)  $(CFLAGS) portmaster.c
 
+monitor.o:   monitor.c
+	$(CC)  $(CFLAGS) monitor.c
+
 clean:
 	rm -f   \
 		myport.o myport	\
 		vessel.o vessel	\
 		portmaster.o portmaster \
-		myfunctions.o
+		myfunctions.o \
+		monitor.o monitor
