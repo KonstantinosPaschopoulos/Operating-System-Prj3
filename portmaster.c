@@ -56,6 +56,10 @@ void updatePublicLedger(public_ledger *head, time_t arrival, int v_id, int ps_id
   newPage->total_cost = (newPage->time_of_departure - newPage->time_of_arrival) * cost_type;
   newPage->next = NULL;
 
+  write_to_logfile("departed from the port at:", v_id, time.tv_sec);
+  write_to_logfile("spent a total time of:", v_id, (newPage->time_of_departure - newPage->time_of_arrival));
+  write_to_logfile("paid:", v_id, newPage->total_cost);
+
   tmp->next = newPage;
 }
 
@@ -75,8 +79,8 @@ void printingPublicLedger(public_ledger *head, int shmid){
   shared_mem = (shm_management *)shm;
   shared_mem->parking_spaces = (parking_space *)(shm + sizeof(shm_management));
 
-  printf("\n**************PUBLIC LEDGER**************\n\n");
-  printf("**********CURRENT STATE OF PORT**********\n");
+  printf("\nPUBLIC LEDGER\n\n");
+  printf("CURRENT STATE OF PORT\n");
   for (i = 0; i < shared_mem->total_spaces; i++)
   {
     printf("Parking Space ID: %d\n", shared_mem->parking_spaces[i].parking_space_id);
@@ -86,7 +90,7 @@ void printingPublicLedger(public_ledger *head, int shmid){
     printf("Time of Arrival of the Currently Parked Vessel: %ld\n\n", shared_mem->parking_spaces[i].arrival);
   }
 
-  printf("***********HISTORY OF THE PORT***********\n");
+  printf("HISTORY OF THE PORT\n\n");
   while (tmp != NULL)
   {
     printf("Parking Space ID: %d\n", tmp->parking_space_id);
@@ -316,12 +320,13 @@ int main(int argc, char **argv){
             //Waiting until noone is moving inside the port
             sem_wait(&shared_mem->port);
 
-            //printf("Vessel %d will park on %d\n", shared_mem->vessel_id, shared_mem->parking_spaces[i].parking_space_id);
             gettimeofday(&time, NULL);
             shared_mem->parking_spaces[i].arrival = time.tv_sec;
             shared_mem->parking_spaces[i].empty = 0;
             shared_mem->parking_spaces[i].vessel_id = shared_mem->vessel_id;
+
             write_to_logfile("entered the port at:", shared_mem->vessel_id, time.tv_sec);
+
             break;
           }
         }
@@ -339,7 +344,9 @@ int main(int argc, char **argv){
       {
         if (shared_mem->parking_spaces[i].vessel_id == shared_mem->vessel_id)
         {
-          printf("Vessel %d will unpark from %d\n", shared_mem->vessel_id, shared_mem->parking_spaces[i].parking_space_id);
+          //Waiting until noone is moving so that the vessel can leave
+          sem_wait(&shared_mem->port);
+
           shared_mem->parking_spaces[i].empty = 1;
           if (strcmp(shared_mem->parking_spaces[i].type, "S") == 0)
           {
@@ -365,7 +372,6 @@ int main(int argc, char **argv){
           break;
         }
       }
-      sem_wait(&shared_mem->port);
       sem_post(&shared_mem->answer);
 
 
