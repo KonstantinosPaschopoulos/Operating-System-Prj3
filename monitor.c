@@ -7,82 +7,15 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <unistd.h>
+#include "publicledger.h"
 #include "mytypes.h"
-
-void print_statistics(void *shm){
-  int profit, count, waiting;
-  shm_management *shared_mem;
-
-  shared_mem = (shm_management *)shm;
-
-  printf("\nPort Statistics\n\n");
-
-  profit = shared_mem->small_profit + shared_mem->medium_profit + shared_mem->big_profit;
-  count = shared_mem->small_vessels_count + shared_mem->medium_vessels_count + shared_mem->big_vessels_count;
-
-  printf("Total profit: %d\n", profit);
-  if (count == 0)
-  {
-    return;
-  }
-  printf("Average profit: %f\n", (profit / count));
-  if (shared_mem->small_vessels_count != 0)
-  {
-    printf("Average profit of small vessels: %f\n", (shared_mem->small_profit / shared_mem->small_vessels_count));
-  }
-  if (shared_mem->medium_vessels_count != 0)
-  {
-    printf("Average profit of medium vessels: %f\n", (shared_mem->medium_profit / shared_mem->medium_vessels_count));
-  }
-  if (shared_mem->big_vessels_count != 0)
-  {
-    printf("Average profit of large vessels: %f\n", (shared_mem->big_profit / shared_mem->big_vessels_count));
-  }
-
-  waiting = shared_mem->small_waiting + shared_mem->medium_waiting + shared_mem->big_waiting;
-  printf("Total waiting time: %d\n", waiting);
-  printf("Average waiting time: %f\n", (waiting / count));
-  if (shared_mem->small_vessels_count != 0)
-  {
-    printf("Average waiting time of small vessels: %f\n", (shared_mem->small_waiting / shared_mem->small_vessels_count));
-  }
-  if (shared_mem->medium_vessels_count != 0)
-  {
-    printf("Average waiting time of medium vessels: %f\n", (shared_mem->medium_waiting / shared_mem->medium_vessels_count));
-  }
-  if (shared_mem->big_vessels_count != 0)
-  {
-    printf("Average waiting time of medium vessels: %f\n", (shared_mem->big_waiting / shared_mem->big_vessels_count));
-  }
-}
-
-void print_port(void *shm){
-  int i;
-  shm_management *shared_mem;
-
-  printf("\nPort Status\n\n");
-
-  shared_mem = (shm_management *)shm;
-  parking_space *public_ledger = (parking_space *)(shm + sizeof(shm_management));
-
-  for (i = 0; i < shared_mem->total_spaces; i++)
-  {
-    //Printing which vessels are currently in the port
-    if (public_ledger[i].empty == 0)
-    {
-      printf("Parking Space ID: %d\n", public_ledger[i].parking_space_id);
-      printf("Type: %s\n", public_ledger[i].type);
-      printf("Vessel ID: %d\n", public_ledger[i].vessel_id);
-      printf("Time of Arrival: %ld\n\n", public_ledger[i].arrival);
-    }
-  }
-}
 
 int main(int argc, char **argv){
   int i, porttime, stattime, shmid, err;
   shm_management *shared_mem;
   void *shm;
 
+  //Parsing the input
   for (i = 1; i < argc; i++)
   {
     if (strcmp(argv[i], "-d") == 0)

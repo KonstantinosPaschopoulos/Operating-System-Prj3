@@ -12,73 +12,9 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <unistd.h>
+#include "publicledger.h"
 #include "mytypes.h"
 #include "myfunctions.h"
-
-public_ledger * createPublicLedger(){
-  public_ledger *head;
-
-  head = (public_ledger *)malloc(sizeof(public_ledger));
-  if (head == NULL)
-  {
-    perror("Public ledger malloc failed");
-    exit(-1);
-  }
-
-  head->next = NULL;
-
-  return head;
-}
-
-void updatePublicLedger(public_ledger *head, time_t arrival, int v_id, int ps_id, char *v_type, int cost_type){
-  struct timeval time;
-  public_ledger *tmp = head, *newPage;
-
-  while (tmp->next != NULL)
-  {
-    tmp = tmp->next;
-  }
-
-  newPage = (public_ledger *)malloc(sizeof(public_ledger));
-  if (newPage == NULL)
-  {
-    perror("New page malloc failed");
-    exit(-1);
-  }
-
-  newPage->status = 0;
-  newPage->time_of_arrival = arrival;
-  newPage->vessel_id = v_id;
-  newPage->parking_space_id = ps_id;
-  strcpy(newPage->boat_type, v_type);
-  gettimeofday(&time, NULL);
-  newPage->time_of_departure = time.tv_sec;
-  newPage->total_cost = (newPage->time_of_departure - newPage->time_of_arrival) * cost_type;
-  newPage->next = NULL;
-
-  write_to_logfile("departed from the port at:", v_id, time.tv_sec);
-  write_to_logfile("spent a total time of:", v_id, (newPage->time_of_departure - newPage->time_of_arrival));
-  write_to_logfile("paid:", v_id, newPage->total_cost);
-
-  tmp->next = newPage;
-}
-
-void printingPublicLedger(public_ledger *head){
-  public_ledger *tmp = head->next;
-
-  printf("\nHISTORY OF THE PORT\n\n");
-  while (tmp != NULL)
-  {
-    printf("Parking Space ID: %d\n", tmp->parking_space_id);
-    printf("Status of Vessel: %d\n", tmp->status);
-    printf("Type: %s\n", tmp->boat_type);
-    printf("Vessel ID: %d\n", tmp->vessel_id);
-    printf("Time of Arrival: %ld\n", tmp->time_of_arrival);
-    printf("Time of Departure: %ld\n", tmp->time_of_departure);
-    printf("Total Cost: %d\n\n", tmp->total_cost);
-    tmp = tmp->next;
-  }
-}
 
 int main(int argc, char **argv){
   FILE *charges = NULL;

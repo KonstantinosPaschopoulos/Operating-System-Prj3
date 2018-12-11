@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=  -g -c -Wall
+CFLAGS=  -c -Wall
 
 all:    myport \
 	vessel \
