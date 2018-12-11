@@ -63,34 +63,10 @@ void updatePublicLedger(public_ledger *head, time_t arrival, int v_id, int ps_id
   tmp->next = newPage;
 }
 
-void printingPublicLedger(public_ledger *head, int shmid){
+void printingPublicLedger(public_ledger *head){
   public_ledger *tmp = head->next;
-  int i, err;
-  void *shm;
-  shm_management *shared_mem;
 
-  //Attaching the shared memory
-  shm = shmat(shmid, (void *) 0, 0);
-  if (shm == (void *) - 1)
-  {
-    perror("Could not attach the shared memory");
-    exit(-1);
-  }
-  shared_mem = (shm_management *)shm;
-  shared_mem->parking_spaces = (parking_space *)(shm + sizeof(shm_management));
-
-  printf("\nPUBLIC LEDGER\n\n");
-  printf("CURRENT STATE OF PORT\n");
-  for (i = 0; i < shared_mem->total_spaces; i++)
-  {
-    printf("Parking Space ID: %d\n", shared_mem->parking_spaces[i].parking_space_id);
-    printf("Empty or not: %d\n", shared_mem->parking_spaces[i].empty);
-    printf("Type: %s\n", shared_mem->parking_spaces[i].type);
-    printf("Vessel ID: %d\n", shared_mem->parking_spaces[i].vessel_id);
-    printf("Time of Arrival of the Currently Parked Vessel: %ld\n\n", shared_mem->parking_spaces[i].arrival);
-  }
-
-  printf("HISTORY OF THE PORT\n\n");
+  printf("\nHISTORY OF THE PORT\n\n");
   while (tmp != NULL)
   {
     printf("Parking Space ID: %d\n", tmp->parking_space_id);
@@ -101,14 +77,6 @@ void printingPublicLedger(public_ledger *head, int shmid){
     printf("Time of Departure: %ld\n", tmp->time_of_departure);
     printf("Total Cost: %d\n\n", tmp->total_cost);
     tmp = tmp->next;
-  }
-
-  //Detaching the shared memory before exiting
-  err = shmdt((void *)shared_mem);
-  if (err == -1)
-  {
-    perror("Could not detach shared memory");
-    exit(-1);
   }
 }
 
@@ -389,7 +357,7 @@ int main(int argc, char **argv){
   }
 
   //Printing the whole public ledger before exiting
-  //printingPublicLedger(head, shmid);
+  printingPublicLedger(head);
 
   //Detaching the shared memory before exiting
   err = shmdt((void *)shm);

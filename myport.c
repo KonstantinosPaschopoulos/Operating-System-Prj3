@@ -90,8 +90,6 @@ int main(int argc, char **argv){
   shared_mem->small_type = 0;
   shared_mem->medium_type = 0;
   shared_mem->big_type = 0;
-  shared_mem->profit = 0;
-  shared_mem->avg_profit = 0;
   shared_mem->small_waiting = 0;
   shared_mem->medium_waiting = 0;
   shared_mem->big_waiting = 0;
@@ -227,7 +225,7 @@ int main(int argc, char **argv){
   }
   if (monitor == 0)
   {
-    execl("monitor", "monitor", "-s", str_id, "-d", "4", "-t", "6", NULL);
+    execl("monitor", "monitor", "-s", str_id, "-d", "6", "-t", "4", NULL);
 
     perror("Monitor failed to exec");
     exit(-1);
