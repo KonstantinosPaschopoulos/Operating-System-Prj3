@@ -12,14 +12,13 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <unistd.h>
-#include "publicledger.h"
 #include "mytypes.h"
 #include "myfunctions.h"
 
 int main(int argc, char **argv){
   FILE *charges = NULL;
   char whole_line[100], c_type[1];
-  int i, shmid, err, flag, small_cost = -1, medium_cost = -1, big_cost = -1, value, cost;
+  int i, shmid, err, flag, small_cost = -1, medium_cost = -1, big_cost = -1, value, cost, tmpcost;
   void *shm;
   shm_management *shared_mem;
   public_ledger *head;
@@ -140,7 +139,6 @@ int main(int argc, char **argv){
         if (flag == 0)
         {
           shared_mem->portmaster_action = 2;
-          shared_mem->small_spaces--;
         }
       }
       else if (strcmp(shared_mem->waiting_type, "M") == 0)
@@ -185,7 +183,6 @@ int main(int argc, char **argv){
         if (flag == 0)
         {
           shared_mem->portmaster_action = 2;
-          shared_mem->medium_spaces--;
         }
       }
       else if (strcmp(shared_mem->waiting_type, "L") == 0)
@@ -207,7 +204,6 @@ int main(int argc, char **argv){
         if (flag == 0)
         {
           shared_mem->portmaster_action = 2;
-          shared_mem->big_spaces--;
         }
       }
 
@@ -225,6 +221,27 @@ int main(int argc, char **argv){
             sem_wait(&shared_mem->port);
 
             gettimeofday(&time, NULL);
+
+            //The statistics are updated according to the parking space type
+            if (strcmp(shared_mem->parking_spaces[i].type, "S") == 0)
+            {
+              shared_mem->small_waiting += (int)(time.tv_sec - shared_mem->waiting_time);
+              shared_mem->small_spaces--;
+              shared_mem->small_vessels_count++;
+            }
+            else if (strcmp(shared_mem->parking_spaces[i].type, "M") == 0)
+            {
+              shared_mem->medium_waiting += (int)(time.tv_sec - shared_mem->waiting_time);
+              shared_mem->medium_spaces--;
+              shared_mem->medium_vessels_count++;
+            }
+            else if (strcmp(shared_mem->parking_spaces[i].type, "L") == 0)
+            {
+              shared_mem->big_waiting += (int)(time.tv_sec - shared_mem->waiting_time);
+              shared_mem->big_spaces--;
+              shared_mem->big_vessels_count++;
+            }
+
             shared_mem->parking_spaces[i].arrival = time.tv_sec;
             shared_mem->parking_spaces[i].empty = 0;
             shared_mem->parking_spaces[i].vessel_id = shared_mem->vessel_id;
@@ -243,7 +260,6 @@ int main(int argc, char **argv){
     }
     else if (shared_mem->vessel_action == 1)
     {
-      //Waits for when noone is moving inside the port
       for (i = 0; i < shared_mem->total_spaces; i++)
       {
         if (shared_mem->parking_spaces[i].vessel_id == shared_mem->vessel_id)
@@ -251,16 +267,17 @@ int main(int argc, char **argv){
           //Waiting until noone is moving so that the vessel can leave
           sem_wait(&shared_mem->port);
 
-          shared_mem->parking_spaces[i].empty = 1;
+          //Updating the shared memory and the statistics, according to
+          //the parking space that the vessel was parked and not its actual size
           if (strcmp(shared_mem->parking_spaces[i].type, "S") == 0)
           {
             cost = small_cost;
-            shared_mem->small_spaces--;
+            shared_mem->small_spaces++;
           }
           else if (strcmp(shared_mem->parking_spaces[i].type, "M") == 0)
           {
             cost = medium_cost;
-            shared_mem->medium_spaces--;
+            shared_mem->medium_spaces++;
           }
           else if (strcmp(shared_mem->parking_spaces[i].type, "L") == 0)
           {
@@ -269,7 +286,22 @@ int main(int argc, char **argv){
           }
 
           //Updating the public ledger once a vessel departs
-          updatePublicLedger(head, shared_mem->parking_spaces[i].arrival, shared_mem->parking_spaces[i].vessel_id, shared_mem->parking_spaces[i].parking_space_id, shared_mem->parking_spaces[i].type, cost);
+          tmpcost = updatePublicLedger(head, shared_mem->parking_spaces[i].arrival, shared_mem->parking_spaces[i].vessel_id, shared_mem->parking_spaces[i].parking_space_id, shared_mem->parking_spaces[i].type, cost);
+
+          if (strcmp(shared_mem->parking_spaces[i].type, "S") == 0)
+          {
+            shared_mem->small_profit += tmpcost;
+          }
+          else if (strcmp(shared_mem->parking_spaces[i].type, "M") == 0)
+          {
+            shared_mem->medium_profit += tmpcost;
+          }
+          else if (strcmp(shared_mem->parking_spaces[i].type, "L") == 0)
+          {
+            shared_mem->big_profit += tmpcost;
+          }
+
+          shared_mem->parking_spaces[i].empty = 1;
           shared_mem->parking_spaces[i].vessel_id = 0;
           shared_mem->parking_spaces[i].arrival = 0;
 

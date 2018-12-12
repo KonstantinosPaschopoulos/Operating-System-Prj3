@@ -75,6 +75,8 @@ int main(int argc, char **argv){
 
   printf("Vessel %d is approaching the port\n", (int)getpid());
 
+  gettimeofday(&time, NULL);
+
   //The vessel stays in the open sea and waits in the FIFO queue
   sem_wait(&shared_mem->approaching);
 
@@ -90,6 +92,7 @@ int main(int argc, char **argv){
     shared_mem->vessel_id = (int)getpid();
     shared_mem->waiting_upgrade = upgrade;
     shared_mem->vessel_action = 0;
+    shared_mem->waiting_time = time.tv_sec;
     sem_post(&shared_mem->portmaster);
 
     printf("Vessel %d is waiting for an answer from the port-master\n", getpid());

@@ -57,34 +57,34 @@ void print_statistics(void *shm){
   {
     return;
   }
-  printf("Average profit: %f\n", (profit / count));
+  printf("Average profit: %f\n", ((float)profit / (float)count));
   if (shared_mem->small_vessels_count != 0)
   {
-    printf("Average profit of small vessels: %f\n", (shared_mem->small_profit / shared_mem->small_vessels_count));
+    printf("Average profit of small vessels: %f\n", ((float)shared_mem->small_profit / (float)shared_mem->small_vessels_count));
   }
   if (shared_mem->medium_vessels_count != 0)
   {
-    printf("Average profit of medium vessels: %f\n", (shared_mem->medium_profit / shared_mem->medium_vessels_count));
+    printf("Average profit of medium vessels: %f\n", ((float)shared_mem->medium_profit / (float)shared_mem->medium_vessels_count));
   }
   if (shared_mem->big_vessels_count != 0)
   {
-    printf("Average profit of large vessels: %f\n", (shared_mem->big_profit / shared_mem->big_vessels_count));
+    printf("Average profit of large vessels: %f\n", ((float)shared_mem->big_profit / (float)shared_mem->big_vessels_count));
   }
 
   waiting = shared_mem->small_waiting + shared_mem->medium_waiting + shared_mem->big_waiting;
   printf("Total waiting time: %d\n", waiting);
-  printf("Average waiting time: %f\n", (waiting / count));
+  printf("Average waiting time: %f\n", ((float)waiting / (float)count));
   if (shared_mem->small_vessels_count != 0)
   {
-    printf("Average waiting time of small vessels: %f\n", (shared_mem->small_waiting / shared_mem->small_vessels_count));
+    printf("Average waiting time of small vessels: %f\n", ((float)shared_mem->small_waiting / (float)shared_mem->small_vessels_count));
   }
   if (shared_mem->medium_vessels_count != 0)
   {
-    printf("Average waiting time of medium vessels: %f\n", (shared_mem->medium_waiting / shared_mem->medium_vessels_count));
+    printf("Average waiting time of medium vessels: %f\n", ((float)shared_mem->medium_waiting / (float)shared_mem->medium_vessels_count));
   }
   if (shared_mem->big_vessels_count != 0)
   {
-    printf("Average waiting time of medium vessels: %f\n", (shared_mem->big_waiting / shared_mem->big_vessels_count));
+    printf("Average waiting time of large vessels: %f\n", ((float)shared_mem->big_waiting / (float)shared_mem->big_vessels_count));
   }
 }
 
@@ -125,7 +125,7 @@ public_ledger * createPublicLedger(){
   return head;
 }
 
-void updatePublicLedger(public_ledger *head, time_t arrival, int v_id, int ps_id, char *v_type, int cost_type){
+int updatePublicLedger(public_ledger *head, time_t arrival, int v_id, int ps_id, char *v_type, int cost_type){
   struct timeval time;
   public_ledger *tmp = head, *newPage;
 
@@ -156,6 +156,8 @@ void updatePublicLedger(public_ledger *head, time_t arrival, int v_id, int ps_id
   write_to_logfile("paid:", v_id, newPage->total_cost);
 
   tmp->next = newPage;
+
+  return newPage->total_cost;
 }
 
 void printingPublicLedger(public_ledger *head){

@@ -7,7 +7,7 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <unistd.h>
-#include "publicledger.h"
+#include "myfunctions.h"
 #include "mytypes.h"
 
 int main(int argc, char **argv){

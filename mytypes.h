@@ -56,6 +56,7 @@ typedef struct shm_management {
   int small_vessels_count;
   int medium_vessels_count;
   int big_vessels_count;
+  long int waiting_time;
   char waiting_type[1];
   int waiting_upgrade;
   int vessel_action;
