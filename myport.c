@@ -20,7 +20,7 @@ int main(int argc, char **argv){
   FILE *configfile = NULL, *charges = NULL;
   void *shm;
   shm_management *shared_mem;
-  char whole_line[100], action[100], type[1], str_id[300], vessel_name[300], parkingtime_str[300], mantime_str[300];
+  char whole_line[100], action[100], type[10], str_id[300], vessel_name[300], parkingtime_str[300], mantime_str[300];
   int value, id, err, i, status, temp, total_spaces;
   pid_t port_master, vessel, monitor;
 
@@ -259,12 +259,11 @@ int main(int argc, char **argv){
       {
         strcpy(type, "L");
       }
-      printf("%s\n", type);
 
       //With upgrade or not
       if (rand() % 2)
       {
-        execl("vessel", "vessel", "-s", str_id, "-u", "-m", mantime_str, "-p", parkingtime_str, "-t", type, NULL);
+        execl("vessel", "vessel", "-s", str_id, "-u", "L", "-m", mantime_str, "-p", parkingtime_str, "-t", type, NULL);
       }
       else
       {
@@ -281,7 +280,7 @@ int main(int argc, char **argv){
   }
 
   //Wait for a signal from the user before exiting
-  printf("Press enter to start closing down the port facilites\n");
+  printf(YEL "Press enter to start closing down the port facilites\n" RESET);
   getchar();
 
   //Signal the other processes to stop executing
@@ -289,7 +288,7 @@ int main(int argc, char **argv){
   sem_post(&shared_mem->portmaster);
   sleep(1);
 
-  printf("Press enter again when eveything has finished\n");
+  printf(YEL "Press enter again when eveything has finished\n" RESET);
   getchar();
 
   //After everything is done remove the resources

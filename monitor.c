@@ -84,7 +84,7 @@ int main(int argc, char **argv){
     exit(-1);
   }
 
-  printf("Monitor has finished\n");
+  printf(RED "Monitor has finished\n" RESET);
 
   return 0;
 }

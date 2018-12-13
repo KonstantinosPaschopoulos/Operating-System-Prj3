@@ -9,11 +9,22 @@
 
 #define SEGMENTPERM 0666
 
+//Some colors to use when printing to make it more clear
+//From: https://stackoverflow.com/questions/3585846/color-text-in-terminal-applications-in-unix
+#define RED   "\x1B[31m"
+#define GRN   "\x1B[32m"
+#define YEL   "\x1B[33m"
+#define BLU   "\x1B[34m"
+#define MAG   "\x1B[35m"
+#define CYN   "\x1B[36m"
+#define WHT   "\x1B[37m"
+#define RESET "\x1B[0m"
+
 //Each parking space is represented by this struct
 typedef struct parking_space {
   int parking_space_id;
   int empty;
-  char type[1];
+  char type[10];
   int vessel_id;
   time_t arrival;
 } parking_space;
@@ -24,7 +35,7 @@ typedef struct public_ledger {
   time_t time_of_arrival;
   int vessel_id;
   int parking_space_id;
-  char boat_type[1];
+  char boat_type[10];
   int total_cost;
   time_t time_of_departure;
   struct public_ledger *next;
@@ -37,6 +48,7 @@ typedef struct shm_management {
   sem_t port;
   sem_t mutex;
   sem_t answer;
+  int vessel_is_waiting;
   int total_spaces;
   int small_spaces;
   int medium_spaces;
@@ -57,8 +69,9 @@ typedef struct shm_management {
   int medium_vessels_count;
   int big_vessels_count;
   long int waiting_time;
-  char waiting_type[1];
+  char waiting_type[10];
   int waiting_upgrade;
+  char waiting_upgrade_type[10];
   int vessel_action;
   int vessel_id;
   int portmaster_action;

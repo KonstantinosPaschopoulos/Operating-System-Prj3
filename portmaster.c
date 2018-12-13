@@ -17,7 +17,7 @@
 
 int main(int argc, char **argv){
   FILE *charges = NULL;
-  char whole_line[100], c_type[1];
+  char whole_line[100], c_type[10], final_type[10];
   int i, shmid, err, flag, small_cost = -1, medium_cost = -1, big_cost = -1, value, cost, tmpcost;
   void *shm;
   shm_management *shared_mem;
@@ -91,11 +91,10 @@ int main(int argc, char **argv){
     //The port-master waits until a vessel talks to him
     sem_wait(&shared_mem->portmaster);
 
-    printf("The port-master is deciding what to do\n");
-
     if (shared_mem->vessel_action == 0)
     {
       //The vessel asks where to park
+      strcpy(final_type, shared_mem->waiting_type);
       flag = 0;
       if (strcmp(shared_mem->waiting_type, "S") == 0)
       {
@@ -104,10 +103,21 @@ int main(int argc, char **argv){
         {
           if (shared_mem->waiting_upgrade == 1)
           {
-            if ((shared_mem->medium_type == 0) && (shared_mem->big_type == 0))
+            if (strcmp(shared_mem->waiting_upgrade_type, "M") == 0)
             {
-              shared_mem->portmaster_action = 0;
-              flag = 1;
+              if (shared_mem->medium_type == 0)
+              {
+                shared_mem->portmaster_action = 0;
+                flag = 1;
+              }
+            }
+            else if (strcmp(shared_mem->waiting_upgrade_type, "L") == 0)
+            {
+              if (shared_mem->big_type == 0)
+              {
+                shared_mem->portmaster_action = 0;
+                flag = 1;
+              }
             }
           }
           else
@@ -127,10 +137,29 @@ int main(int argc, char **argv){
           }
           else
           {
-            if ((shared_mem->medium_spaces == 0) && (shared_mem->big_spaces == 0))
+            if (strcmp(shared_mem->waiting_upgrade_type, "M") == 0)
             {
-              shared_mem->portmaster_action = 1;
-              flag = 1;
+              if (shared_mem->medium_spaces == 0)
+              {
+                shared_mem->portmaster_action = 1;
+                flag = 1;
+              }
+              else
+              {
+                strcpy(final_type, "M");
+              }
+            }
+            else if (strcmp(shared_mem->waiting_upgrade_type, "L") == 0)
+            {
+              if (shared_mem->big_spaces == 0)
+              {
+                shared_mem->portmaster_action = 1;
+                flag = 1;
+              }
+              else
+              {
+                strcpy(final_type, "L");
+              }
             }
           }
         }
@@ -176,6 +205,10 @@ int main(int argc, char **argv){
               shared_mem->portmaster_action = 1;
               flag = 1;
             }
+            else
+            {
+              strcpy(final_type, "L");
+            }
           }
         }
 
@@ -207,6 +240,15 @@ int main(int argc, char **argv){
         }
       }
 
+      if (shared_mem->portmaster_action == 1)
+      {
+        //Port-master continues to work without letting any new vessels
+        //to park inside the port until this vessel has found a parking space
+        sem_post(&shared_mem->answer);
+        sem_wait(&shared_mem->portmaster);
+        continue;
+      }
+
       //Answering the vessel
       if (shared_mem->portmaster_action == 2)
       {
@@ -215,7 +257,7 @@ int main(int argc, char **argv){
         for (i = 0; i < shared_mem->total_spaces; i++)
         {
           //Finding an empty space for the current vessel
-          if ((strcmp(shared_mem->parking_spaces[i].type, shared_mem->waiting_type) == 0) && (shared_mem->parking_spaces[i].empty == 1))
+          if ((strcmp(shared_mem->parking_spaces[i].type, final_type) == 0) && (shared_mem->parking_spaces[i].empty == 1))
           {
             //Waiting until noone is moving inside the port
             sem_wait(&shared_mem->port);
@@ -257,6 +299,9 @@ int main(int argc, char **argv){
       //The port-master will be unavailable until the vessel
       //has received the answer
       sem_wait(&shared_mem->portmaster);
+
+      //Ready to accept the next vessel
+      sem_post(&shared_mem->approaching);
     }
     else if (shared_mem->vessel_action == 1)
     {
@@ -310,18 +355,12 @@ int main(int argc, char **argv){
       }
       sem_post(&shared_mem->answer);
 
-
       sem_wait(&shared_mem->portmaster);
     }
     else if (shared_mem->vessel_action == -1)
     {
       break;
     }
-
-    printf("The port-master is ready to assist the next vessel\n");
-
-    //Ready to accept the next vessel
-    sem_post(&shared_mem->approaching);
   }
 
   //Printing the whole public ledger before exiting
@@ -335,7 +374,7 @@ int main(int argc, char **argv){
     exit(-1);
   }
 
-  printf("Port-master has finished\n");
+  printf(RED "Port-master has finished\n" RESET);
 
   return 0;
 }

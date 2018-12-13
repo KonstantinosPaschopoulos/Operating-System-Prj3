@@ -18,7 +18,8 @@ int main(int argc, char **argv){
   shm_management *shared_mem;
   void *shm;
   struct timeval time;
-  char type[1];
+  char type[10], upgrade_type[10];
+  strcpy(upgrade_type, "S");
 
   //Parsing the input
   for (i = 1; i < argc; i++)
@@ -39,7 +40,17 @@ int main(int argc, char **argv){
     }
     else if (strcmp(argv[i], "-u") == 0)
     {
+      if ((strcmp(argv[i + 1], "M") == 0) || (strcmp(argv[i + 1], "L") == 0))
+      {
+        strcpy(upgrade_type, argv[i + 1]);
+      }
+      else
+      {
+        printf("The vessel can only upgrade to M or L\n");
+        exit(-1);
+      }
       upgrade = 1;
+      i++;
     }
     else if (strcmp(argv[i], "-p") == 0)
     {
@@ -73,11 +84,11 @@ int main(int argc, char **argv){
   shared_mem = (shm_management *) shm;
   parking_space *public_ledger = (parking_space *)(shm + sizeof(shm_management));
 
-  printf("Vessel %d is approaching the port\n", (int)getpid());
+  printf("Vessel %d is approaching the port TYPE %s UPGRADE %s\n", (int)getpid(), type, upgrade_type);
 
   gettimeofday(&time, NULL);
 
-  //The vessel stays in the open sea and waits in the FIFO queue
+  //Every vessel gets stuck here until the port-master can assist it
   sem_wait(&shared_mem->approaching);
 
   while (1)
@@ -85,34 +96,32 @@ int main(int argc, char **argv){
     //Locks the shared memory to ask to park somewhere
     sem_wait(&shared_mem->mutex);
 
-    printf("Vessel %d can now talk with the port-master\n", getpid());
-
     //The vessel can now wake up the port-master and ask him where to park
     strcpy(shared_mem->waiting_type, type);
     shared_mem->vessel_id = (int)getpid();
     shared_mem->waiting_upgrade = upgrade;
+    strcpy(shared_mem->waiting_upgrade_type, upgrade_type);
     shared_mem->vessel_action = 0;
     shared_mem->waiting_time = time.tv_sec;
     sem_post(&shared_mem->portmaster);
 
-    printf("Vessel %d is waiting for an answer from the port-master\n", getpid());
-
     //The port-master replied and the vessel can now move inside the port
     sem_wait(&shared_mem->answer);
-
-    printf("Port-master answered vessel %d to %d\n", getpid(), shared_mem->portmaster_action);
 
     if (shared_mem->portmaster_action == 0)
     {
       //This vessel can't park in this port so it has to leave
+      sem_post(&shared_mem->mutex);
       sem_post(&shared_mem->portmaster);
       return 0;
     }
     else if (shared_mem->portmaster_action == 1)
     {
       //There are no availiable parking spots at this moment
+      //so the vessel keeps asking until it gets a spot
+      sem_post(&shared_mem->mutex);
       sem_post(&shared_mem->portmaster);
-      sem_wait(&shared_mem->approaching);
+      //sem_wait(&shared_mem->approaching);
     }
     else if (shared_mem->portmaster_action == 2)
     {
@@ -126,14 +135,10 @@ int main(int argc, char **argv){
   //Free the port-master
   sem_post(&shared_mem->portmaster);
 
-  printf("Vessel %d moves to the assigned parking spot\n", getpid());
-
   sleep(mantime);
 
   //The vessel has parked and now no one is moving inside the port
   sem_post(&shared_mem->port);
-
-  printf("Vessel %d will stay parked for %d seconds\n", getpid(), parkperiod);
 
   //The vessel stays parked in the port and at a random point asks for the current bill
   for (i = 0; i < parkperiod; i++)
@@ -196,8 +201,6 @@ int main(int argc, char **argv){
     perror("Could not detach shared memory");
     exit(-1);
   }
-
-  printf("Vessel %d has left the port\n", getpid());
 
   return 0;
 }
