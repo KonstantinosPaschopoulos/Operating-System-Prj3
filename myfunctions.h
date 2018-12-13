@@ -16,3 +16,5 @@ public_ledger * createPublicLedger();
 int updatePublicLedger(public_ledger *, time_t, int, int, char *, int);
 //Prints only the history of the port
 void printingPublicLedger(public_ledger *);
+//Deleting all the memory that was allocated for the public ledger
+void removePublicLedger(public_ledger *);

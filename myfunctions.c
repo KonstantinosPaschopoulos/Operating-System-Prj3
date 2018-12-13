@@ -176,3 +176,15 @@ void printingPublicLedger(public_ledger *head){
     tmp = tmp->next;
   }
 }
+
+void removePublicLedger(public_ledger *head){
+  public_ledger *tmp, *current;
+
+  current = head;
+  while (current != NULL)
+  {
+    tmp = current;
+    current = current->next;
+    free(tmp);
+  }
+}

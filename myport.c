@@ -299,6 +299,31 @@ int main(int argc, char **argv){
   getchar();
 
   //After everything is done remove the resources
+  if (sem_destroy(&shared_mem->approaching) != 0)
+  {
+    perror("Couldn't destroy a semaphore");
+    exit(3);
+  }
+  if (sem_destroy(&shared_mem->portmaster) != 0)
+  {
+    perror("Couldn't destroy a semaphore");
+    exit(3);
+  }
+  if (sem_destroy(&shared_mem->port) != 0)
+  {
+    perror("Couldn't destroy a semaphore");
+    exit(3);
+  }
+  if (sem_destroy(&shared_mem->mutex) != 0)
+  {
+    perror("Couldn't destroy a semaphore");
+    exit(3);
+  }
+  if (sem_destroy(&shared_mem->answer) != 0)
+  {
+    perror("Couldn't destroy a semaphore");
+    exit(3);
+  }
   err = shmctl(id, IPC_RMID, 0);
   if (err == -1)
   {
