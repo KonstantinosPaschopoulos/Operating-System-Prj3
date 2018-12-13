@@ -225,7 +225,7 @@ int main(int argc, char **argv){
   }
   if (monitor == 0)
   {
-    execl("monitor", "monitor", "-s", str_id, "-d", "6", "-t", "4", NULL);
+    execl("monitor", "monitor", "-s", str_id, "-d", "4", "-t", "6", NULL);
 
     perror("Monitor failed to exec");
     exit(-1);
@@ -263,7 +263,14 @@ int main(int argc, char **argv){
       //With upgrade or not
       if (rand() % 2)
       {
-        execl("vessel", "vessel", "-s", str_id, "-u", "L", "-m", mantime_str, "-p", parkingtime_str, "-t", type, NULL);
+        if (strcmp(type, "L") == 0)
+        {
+          execl("vessel", "vessel", "-s", str_id, "-m", mantime_str, "-p", parkingtime_str, "-t", type, NULL);
+        }
+        else
+        {
+          execl("vessel", "vessel", "-s", str_id, "-u", "L", "-m", mantime_str, "-p", parkingtime_str, "-t", type, NULL);
+        }
       }
       else
       {
