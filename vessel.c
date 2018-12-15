@@ -189,7 +189,7 @@ int main(int argc, char **argv){
             cost = shared_mem->big_cost;
           }
           gettimeofday(&time, NULL);
-          printf("The current cost for the vessel %d is: %ld\n", (int)getpid(), (time.tv_sec - public_ledger[j].arrival) * cost);
+          write_to_logfile("has to pay so far:", (int)getpid(), (time.tv_sec - public_ledger[j].arrival) * cost);
 
           break;
         }

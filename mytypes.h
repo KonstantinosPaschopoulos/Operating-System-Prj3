@@ -9,8 +9,7 @@
 
 #define SEGMENTPERM 0666
 
-//Some colors to use when printing to make it more clear
-//From: https://stackoverflow.com/questions/3585846/color-text-in-terminal-applications-in-unix
+//Some colors to use when printing to make it clearer
 #define RED   "\x1B[31m"
 #define GRN   "\x1B[32m"
 #define YEL   "\x1B[33m"
@@ -44,11 +43,11 @@ typedef struct public_ledger {
 //The struct that holds everything I need to have in the shared memory segment
 typedef struct shm_management {
   sem_t approaching;
-  sem_t stuck_vessel;
   sem_t portmaster;
-  sem_t port;
   sem_t mutex;
+  sem_t port;
   sem_t answer;
+  sem_t stuck_vessel;
   int vessel_is_waiting;
   int total_spaces;
   int small_spaces;

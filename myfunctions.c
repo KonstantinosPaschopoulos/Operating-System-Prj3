@@ -105,7 +105,7 @@ void print_port(void *shm){
       printf("Parking Space ID: %d\n", public_ledger[i].parking_space_id);
       printf("Type: %s\n", public_ledger[i].type);
       printf("Vessel ID: %d\n", public_ledger[i].vessel_id);
-      printf("Time of Arrival: %ld\n\n", public_ledger[i].arrival);
+      printf("Time of Arrival: %ld\n", public_ledger[i].arrival);
     }
   }
 }

@@ -86,15 +86,27 @@ int main(int argc, char **argv){
   shared_mem->parking_spaces = (parking_space *)(shm + sizeof(shm_management));
 
   //Initializing the shared memory
+  shared_mem->vessel_is_waiting = 0;
   shared_mem->total_spaces = total_spaces;
+  shared_mem->small_spaces = 0;
+  shared_mem->medium_spaces = 0;
+  shared_mem->big_spaces = 0;
   shared_mem->small_type = 0;
   shared_mem->medium_type = 0;
   shared_mem->big_type = 0;
+  shared_mem->small_cost = 0;
+  shared_mem->medium_cost = 0;
+  shared_mem->big_cost = 0;
+  shared_mem->small_profit = 0;
+  shared_mem->medium_profit = 0;
+  shared_mem->big_profit = 0;
   shared_mem->small_waiting = 0;
   shared_mem->medium_waiting = 0;
   shared_mem->big_waiting = 0;
+  shared_mem->small_vessels_count = 0;
+  shared_mem->medium_vessels_count = 0;
+  shared_mem->big_vessels_count = 0;
   shared_mem->closing_time = 0;
-  shared_mem->vessel_is_waiting = 0;
   if (sem_init(&shared_mem->approaching, 1, 1) != 0)
   {
     perror("Could not initialize semaphore");
@@ -205,7 +217,7 @@ int main(int argc, char **argv){
 
   //After the shared memory is set up myport prints
   //the id so that other processes can use it
-  printf("Shared memory segment: %d\n", id);
+  printf("Shared memory segment: %d\n\n", id);
   sprintf(str_id, "%d", id);
 
   port_master = fork();
