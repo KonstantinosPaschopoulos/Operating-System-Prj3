@@ -1,3 +1,7 @@
+//File: monitor.c
+//It prints some statistics about the port and the status of the port
+//with a user specified period.
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,6 +11,7 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #include <unistd.h>
+#include <signal.h>
 #include "myfunctions.h"
 #include "mytypes.h"
 
@@ -14,6 +19,7 @@ int main(int argc, char **argv){
   int i, porttime, stattime, shmid, err;
   shm_management *shared_mem;
   void *shm;
+  pid_t stat_child, port_child;
 
   //Parsing the input
   for (i = 1; i < argc; i++)
@@ -49,30 +55,63 @@ int main(int argc, char **argv){
   }
   shared_mem = (shm_management *)shm;
 
+  stat_child = fork();
+  if (stat_child < 0)
+  {
+    perror("Fork failed");
+    exit(-1);
+  }
+  if (stat_child == 0)
+  {
+    while (1)
+    {
+      sleep(stattime);
+      sem_wait(&shared_mem->mutex);
+      print_statistics(shm);
+      sem_post(&shared_mem->mutex);
+    }
+
+    exit(0);
+  }
+
+  port_child = fork();
+  if (port_child < 0)
+  {
+    perror("Fork failed");
+    exit(-1);
+  }
+  if (port_child == 0)
+  {
+    while (1)
+    {
+      sleep(porttime);
+      sem_wait(&shared_mem->mutex);
+      print_port(shm);
+      sem_post(&shared_mem->mutex);
+    }
+
+    exit(0);
+  }
+
   while (1)
   {
-    //Works until a "signal" to stop arrives
+    //Works until a "signal", from the port-master, to stop arrives
     if (shared_mem->vessel_action == -1)
     {
+      kill(stat_child, SIGKILL);
+      kill(port_child, SIGKILL);
       break;
     }
 
-    //Print the results with the user specified period
+    //Sleep for however long the longest period is and then wake up
+    //to check if the monitor should close
     if (porttime > stattime)
     {
-      sleep(stattime);
-      print_statistics(shm);
-
-      sleep(porttime - stattime);
-      print_port(shm);
+      sleep(porttime);
     }
     else
     {
-      sleep(porttime);
-      print_port(shm);
-
-      sleep(stattime - porttime);
-      print_statistics(shm);
+      sleep(stattime);
     }
   }
 
