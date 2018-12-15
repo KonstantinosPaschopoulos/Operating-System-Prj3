@@ -410,7 +410,7 @@ int main(int argc, char **argv){
     perror("Could not detach shared memory");
     exit(-1);
   }
-
+  fclose(charges);
   removePublicLedger(head);
 
   printf(RED "Port-master has finished\n" RESET);
