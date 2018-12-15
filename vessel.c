@@ -141,6 +141,10 @@ int main(int argc, char **argv){
       //so the vessel keeps asking until it gets a spot
       sem_post(&shared_mem->mutex);
       sem_post(&shared_mem->portmaster);
+
+      //To avoid busy-waiting the vessel gets stuck here until
+      //a parking space becomes free, then it asks the port-master again
+      sem_wait(&shared_mem->stuck_vessel);
     }
     else if (shared_mem->portmaster_action == 2)
     {

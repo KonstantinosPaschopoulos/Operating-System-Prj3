@@ -94,6 +94,7 @@ int main(int argc, char **argv){
   shared_mem->medium_waiting = 0;
   shared_mem->big_waiting = 0;
   shared_mem->closing_time = 0;
+  shared_mem->vessel_is_waiting = 0;
   if (sem_init(&shared_mem->approaching, 1, 1) != 0)
   {
     perror("Could not initialize semaphore");
@@ -115,6 +116,11 @@ int main(int argc, char **argv){
     exit(3);
   }
   if (sem_init(&shared_mem->answer, 1, 0) != 0)
+  {
+    perror("Could not initialize semaphore");
+    exit(3);
+  }
+  if (sem_init(&shared_mem->stuck_vessel, 1, 0) != 0)
   {
     perror("Could not initialize semaphore");
     exit(3);
@@ -320,6 +326,11 @@ int main(int argc, char **argv){
     exit(3);
   }
   if (sem_destroy(&shared_mem->answer) != 0)
+  {
+    perror("Couldn't destroy a semaphore");
+    exit(3);
+  }
+  if (sem_destroy(&shared_mem->stuck_vessel) != 0)
   {
     perror("Couldn't destroy a semaphore");
     exit(3);

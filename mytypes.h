@@ -44,6 +44,7 @@ typedef struct public_ledger {
 //The struct that holds everything I need to have in the shared memory segment
 typedef struct shm_management {
   sem_t approaching;
+  sem_t stuck_vessel;
   sem_t portmaster;
   sem_t port;
   sem_t mutex;

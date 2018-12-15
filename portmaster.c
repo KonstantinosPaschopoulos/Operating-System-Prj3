@@ -90,7 +90,7 @@ int main(int argc, char **argv){
   {
     if (shared_mem->closing_time == 1)
     {
-      //Make sure the whole port is empty before closing it
+      //Make sure the whole port is empty before closing it down
       flag = 0;
       for (i = 0; i < shared_mem->total_spaces; i++)
       {
@@ -272,6 +272,7 @@ int main(int argc, char **argv){
       {
         //Port-master continues to work without letting any new vessels
         //to park inside the port until this vessel has found a parking space
+        shared_mem->vessel_is_waiting = 1;
         sem_post(&shared_mem->answer);
         sem_wait(&shared_mem->portmaster);
         continue;
@@ -384,6 +385,13 @@ int main(int argc, char **argv){
       sem_post(&shared_mem->answer);
 
       sem_wait(&shared_mem->portmaster);
+
+      if (shared_mem->vessel_is_waiting == 1)
+      {
+        //After a parking space has become free, wake up the vessel that is waiting
+        sem_post(&shared_mem->stuck_vessel);
+        shared_mem->vessel_is_waiting = 0;
+      }
     }
     else if (shared_mem->vessel_action == -1)
     {
@@ -402,7 +410,7 @@ int main(int argc, char **argv){
     perror("Could not detach shared memory");
     exit(-1);
   }
-  
+
   removePublicLedger(head);
 
   printf(RED "Port-master has finished\n" RESET);
