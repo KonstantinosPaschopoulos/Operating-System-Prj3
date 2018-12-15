@@ -84,7 +84,20 @@ int main(int argc, char **argv){
   shared_mem = (shm_management *) shm;
   parking_space *public_ledger = (parking_space *)(shm + sizeof(shm_management));
 
-  printf("Vessel %d is approaching the port TYPE %s UPGRADE %s\n", (int)getpid(), type, upgrade_type);
+  //The port is closing down, so it is pointless to ask where to park
+  if (shared_mem->closing_time == 1)
+  {
+    //Detaching the shared memory before exiting
+    err = shmdt((void *)shm);
+    if (err == -1)
+    {
+      perror("Could not detach shared memory");
+      exit(-1);
+    }
+    return 0;
+  }
+
+  printf("Vessel %d, of type %s, is approaching the port. Upgrade: %d\n", (int)getpid(), type, upgrade);
 
   gettimeofday(&time, NULL);
 
@@ -113,6 +126,13 @@ int main(int argc, char **argv){
       //This vessel can't park in this port so it has to leave
       sem_post(&shared_mem->mutex);
       sem_post(&shared_mem->portmaster);
+      //Detaching the shared memory before exiting
+      err = shmdt((void *)shm);
+      if (err == -1)
+      {
+        perror("Could not detach shared memory");
+        exit(-1);
+      }
       return 0;
     }
     else if (shared_mem->portmaster_action == 1)
@@ -121,7 +141,6 @@ int main(int argc, char **argv){
       //so the vessel keeps asking until it gets a spot
       sem_post(&shared_mem->mutex);
       sem_post(&shared_mem->portmaster);
-      //sem_wait(&shared_mem->approaching);
     }
     else if (shared_mem->portmaster_action == 2)
     {
@@ -167,6 +186,8 @@ int main(int argc, char **argv){
           }
           gettimeofday(&time, NULL);
           printf("The current cost for the vessel %d is: %ld\n", (int)getpid(), (time.tv_sec - public_ledger[j].arrival) * cost);
+
+          break;
         }
       }
       sem_post(&shared_mem->mutex);

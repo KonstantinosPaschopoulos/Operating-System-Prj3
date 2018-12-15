@@ -88,11 +88,39 @@ int main(int argc, char **argv){
   //The port-master is constantly working
   while (1)
   {
+    if (shared_mem->closing_time == 1)
+    {
+      //Make sure the whole port is empty before closing it
+      flag = 0;
+      for (i = 0; i < shared_mem->total_spaces; i++)
+      {
+        if (shared_mem->parking_spaces[i].empty == 0)
+        {
+          flag = 1;
+          break;
+        }
+      }
+
+      if (flag == 0)
+      {
+        break;
+      }
+    }
+
     //The port-master waits until a vessel talks to him
     sem_wait(&shared_mem->portmaster);
 
     if (shared_mem->vessel_action == 0)
     {
+      if (shared_mem->closing_time == 1)
+      {
+        //The port-master can't let the vessel enter the port, as it is about to close
+        shared_mem->portmaster_action = 0;
+        sem_post(&shared_mem->answer);
+        sem_wait(&shared_mem->portmaster);
+        continue;
+      }
+
       //The vessel asks where to park
       strcpy(final_type, shared_mem->waiting_type);
       flag = 0;
@@ -359,7 +387,8 @@ int main(int argc, char **argv){
     }
     else if (shared_mem->vessel_action == -1)
     {
-      break;
+      shared_mem->closing_time = 1;
+      //break;
     }
   }
 
