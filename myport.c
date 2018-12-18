@@ -309,8 +309,11 @@ int main(int argc, char **argv){
   getchar();
 
   //Signal the other processes to stop executing
+  sem_wait(&shared_mem->mutex);
   shared_mem->vessel_action = -1;
   sem_post(&shared_mem->portmaster);
+  sem_post(&shared_mem->mutex);
+  sem_wait(&shared_mem->answer);
   sleep(1);
 
   printf(YEL "Press enter again when eveything has finished\n" RESET);

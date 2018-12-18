@@ -396,7 +396,7 @@ int main(int argc, char **argv){
     else if (shared_mem->vessel_action == -1)
     {
       shared_mem->closing_time = 1;
-      //break;
+      sem_post(&shared_mem->answer);
     }
   }
 

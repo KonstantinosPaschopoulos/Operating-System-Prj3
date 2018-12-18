@@ -96,7 +96,7 @@ int main(int argc, char **argv){
   while (1)
   {
     //Works until a "signal", from the port-master, to stop arrives
-    if (shared_mem->vessel_action == -1)
+    if (shared_mem->closing_time == 1)
     {
       kill(stat_child, SIGKILL);
       kill(port_child, SIGKILL);
