@@ -312,8 +312,8 @@ int main(int argc, char **argv){
   sem_wait(&shared_mem->mutex);
   shared_mem->vessel_action = -1;
   sem_post(&shared_mem->portmaster);
-  sem_post(&shared_mem->mutex);
   sem_wait(&shared_mem->answer);
+  sem_post(&shared_mem->mutex);
   sleep(1);
 
   printf(YEL "Press enter again when eveything has finished\n" RESET);
